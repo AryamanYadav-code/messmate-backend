@@ -1,54 +1,48 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
-// Get all menu items
-router.get('/', (req, res) => {
-  db.query('SELECT * FROM menu_items WHERE is_available = 1', (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM menu_items WHERE is_available = true');
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get menu by category
-router.get('/:category', (req, res) => {
-  db.query('SELECT * FROM menu_items WHERE category = ? AND is_available = 1',
-    [req.params.category], (err, results) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(results);
-    });
+router.get('/:category', async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM menu_items WHERE category = $1 AND is_available = true',
+      [req.params.category]
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin - Add menu item
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, description, price, category, is_veg, image_url } = req.body;
-  db.query(
-    'INSERT INTO menu_items (name, description, price, category, is_veg, image_url) VALUES (?,?,?,?,?,?)',
-    [name, description, price, category, is_veg, image_url],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Item added!', itemId: result.insertId });
-    }
-  );
+  try {
+    const result = await db.query(
+      'INSERT INTO menu_items (name, description, price, category, is_veg, image_url) VALUES ($1,$2,$3,$4,$5,$6) RETURNING item_id',
+      [name, description, price, category, is_veg, image_url || '']
+    );
+    res.json({ message: 'Item added!', itemId: result.rows[0].item_id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin - Delete menu item
-router.delete('/:id', (req, res) => {
-  db.query('UPDATE menu_items SET is_available = 0 WHERE item_id = ?',
-    [req.params.id], (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Item removed!' });
-    });
+router.delete('/:id', async (req, res) => {
+  try {
+    await db.query('UPDATE menu_items SET is_available = false WHERE item_id = $1', [req.params.id]);
+    res.json({ message: 'Item removed!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Update item image
-router.put('/:id/image', (req, res) => {
+router.put('/:id/image', async (req, res) => {
   const { image_url } = req.body;
-  db.query('UPDATE menu_items SET image_url = ? WHERE item_id = ?',
-    [image_url, req.params.id], (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Image updated!' });
-    });
+  try {
+    await db.query('UPDATE menu_items SET image_url = $1 WHERE item_id = $2', [image_url, req.params.id]);
+    res.json({ message: 'Image updated!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

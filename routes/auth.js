@@ -1,34 +1,35 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-// Register
 router.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
+  const allowedDomains = ['@srmist.edu.in', '@srmuniv.ac.in', '@test.com'];
+  const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
+  if (!isAllowed) {
+    return res.status(400).json({ error: 'Only college email addresses are allowed' });
+  }
   try {
     const hash = await bcrypt.hash(password, 10);
-    db.query(
-      'INSERT INTO users (name, email, password_hash, role) VALUES (?,?,?,?)',
-      [name, email, hash, role || 'student'],
-      (err, result) => {
-        if (err) return res.status(400).json({ error: err.message });
-        res.json({ message: 'Registered successfully!', userId: result.insertId });
-      }
+    const result = await db.query(
+      'INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,$4) RETURNING user_id',
+      [name, email, hash, role || 'student']
     );
+    res.json({ message: 'Registered successfully!', userId: result.rows[0].user_id });
   } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: 'Email already registered!' });
     res.status(500).json({ error: err.message });
   }
 });
 
-// Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-    if (err || results.length === 0)
-      return res.status(400).json({ error: 'User not found' });
-    const user = results[0];
+  try {
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) return res.status(400).json({ error: 'User not found' });
+    const user = result.rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ error: 'Wrong password' });
     const token = jwt.sign(
@@ -37,23 +38,25 @@ router.post('/login', (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({ token, role: user.role, name: user.name, userId: user.user_id });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Change password
 router.post('/change-password', async (req, res) => {
   const { user_id, old_password, new_password } = req.body;
-  db.query('SELECT * FROM users WHERE user_id = ?', [user_id], async (err, results) => {
-    if (err || results.length === 0) return res.status(400).json({ error: 'User not found' });
-    const user = results[0];
+  try {
+    const result = await db.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) return res.status(400).json({ error: 'User not found' });
+    const user = result.rows[0];
     const match = await bcrypt.compare(old_password, user.password_hash);
     if (!match) return res.status(400).json({ error: 'Current password is incorrect' });
     const hash = await bcrypt.hash(new_password, 10);
-    db.query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hash, user_id], (err2) => {
-      if (err2) return res.status(500).json({ error: err2.message });
-      res.json({ message: 'Password changed successfully!' });
-    });
-  });
+    await db.query('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, user_id]);
+    res.json({ message: 'Password changed successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

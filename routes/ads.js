@@ -2,42 +2,43 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
-router.get('/', (req, res) => {
-  db.query('SELECT * FROM ads WHERE is_approved = 1', (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM ads WHERE is_approved = true');
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.get('/all', (req, res) => {
-  db.query('SELECT * FROM ads ORDER BY created_at DESC', (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
-  });
+router.get('/all', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM ads ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { title, image_url, link_url } = req.body;
-  db.query('INSERT INTO ads (title, image_url, link_url, is_approved) VALUES (?,?,?,1)',
-    [title, image_url, link_url || ''], (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Ad added!', adId: result.insertId });
-    });
+  try {
+    const result = await db.query(
+      'INSERT INTO ads (title, image_url, link_url, is_approved) VALUES ($1,$2,$3,true) RETURNING ad_id',
+      [title, image_url, link_url || '']
+    );
+    res.json({ message: 'Ad added!', adId: result.rows[0].ad_id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.delete('/:id', (req, res) => {
-  db.query('DELETE FROM ads WHERE ad_id = ?', [req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+router.delete('/:id', async (req, res) => {
+  try {
+    await db.query('DELETE FROM ads WHERE ad_id = $1', [req.params.id]);
     res.json({ message: 'Ad removed!' });
-  });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.put('/:id/toggle', (req, res) => {
-  db.query('UPDATE ads SET is_approved = NOT is_approved WHERE ad_id = ?',
-    [req.params.id], (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Ad toggled!' });
-    });
+router.put('/:id/toggle', async (req, res) => {
+  try {
+    await db.query('UPDATE ads SET is_approved = NOT is_approved WHERE ad_id = $1', [req.params.id]);
+    res.json({ message: 'Ad toggled!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;
