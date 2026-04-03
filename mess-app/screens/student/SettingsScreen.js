@@ -1,0 +1,330 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert, Switch, Modal } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../services/api';
+
+export default function SettingsScreen({ navigation }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
+  const [userId, setUserId] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState(true);
+  const [passwordModal, setPasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    const n = await AsyncStorage.getItem('name');
+    const r = await AsyncStorage.getItem('role');
+    const id = await AsyncStorage.getItem('user_id');
+    const e = await AsyncStorage.getItem('email');
+    const dm = await AsyncStorage.getItem('darkMode');
+    const notif = await AsyncStorage.getItem('notifications');
+    setName(n || '');
+    setRole(r || '');
+    setUserId(id || '');
+    setEmail(e || '');
+    setDarkMode(dm === 'true');
+    setNotifications(notif !== 'false');
+  };
+
+  const changePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword)
+      return Alert.alert('Error', 'Please fill all fields');
+    if (newPassword.length < 6)
+      return Alert.alert('Error', 'New password must be at least 6 characters');
+    if (newPassword !== confirmPassword)
+      return Alert.alert('Error', 'New passwords do not match');
+    setLoading(true);
+    try {
+      await api.post('/auth/change-password', {
+        user_id: parseInt(userId),
+        old_password: oldPassword,
+        new_password: newPassword
+      });
+      Alert.alert('Success! 🎉', 'Password changed successfully!');
+      setPasswordModal(false);
+      setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to change password');
+    } finally { setLoading(false); }
+  };
+
+  const toggleDarkMode = async (val) => {
+    setDarkMode(val);
+    await AsyncStorage.setItem('darkMode', val.toString());
+    Alert.alert('Coming Soon', 'Dark mode will be available in the next update!');
+  };
+
+  const toggleNotifications = async (val) => {
+    setNotifications(val);
+    await AsyncStorage.setItem('notifications', val.toString());
+  };
+
+  const logout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: async () => {
+        await AsyncStorage.clear();
+        navigation.replace('Login');
+      }}
+    ]);
+  };
+
+  const getRoleBadgeColor = () => {
+    if (role === 'admin') return { bg: '#E8F5E9', text: '#4CAF50' };
+    if (role === 'superadmin') return { bg: '#FFF3E0', text: '#FF9800' };
+    return { bg: '#EEF', text: '#6C63FF' };
+  };
+
+  const roleColor = getRoleBadgeColor();
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={{ width: 30 }}/>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{name?.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{name}</Text>
+            <Text style={styles.profileEmail}>{email || 'No email saved'}</Text>
+            <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
+              <Text style={[styles.roleBadgeText, { color: roleColor.text }]}>
+                {role?.charAt(0).toUpperCase() + role?.slice(1)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Account Section */}
+        <Text style={styles.sectionTitle}>Account</Text>
+        <View style={styles.section}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>👤</Text>
+              <View>
+                <Text style={styles.settingLabel}>Full Name</Text>
+                <Text style={styles.settingValue}>{name}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider}/>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🎓</Text>
+              <View>
+                <Text style={styles.settingLabel}>Role</Text>
+                <Text style={styles.settingValue}>{role?.charAt(0).toUpperCase() + role?.slice(1)}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider}/>
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => setPasswordModal(true)}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🔒</Text>
+              <View>
+                <Text style={styles.settingLabel}>Change Password</Text>
+                <Text style={styles.settingValue}>Update your password</Text>
+              </View>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Preferences Section */}
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <View style={styles.section}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🌙</Text>
+              <View>
+                <Text style={styles.settingLabel}>Dark Mode</Text>
+                <Text style={styles.settingValue}>Coming soon</Text>
+              </View>
+            </View>
+            <Switch
+              value={darkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{ false: '#ddd', true: '#6C63FF' }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          <View style={styles.divider}/>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🔔</Text>
+              <View>
+                <Text style={styles.settingLabel}>Notifications</Text>
+                <Text style={styles.settingValue}>Order status alerts</Text>
+              </View>
+            </View>
+            <Switch
+              value={notifications}
+              onValueChange={toggleNotifications}
+              trackColor={{ false: '#ddd', true: '#6C63FF' }}
+              thumbColor="#fff"
+            />
+          </View>
+        </View>
+
+        {/* App Info Section */}
+        <Text style={styles.sectionTitle}>About</Text>
+        <View style={styles.section}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>📱</Text>
+              <View>
+                <Text style={styles.settingLabel}>App Version</Text>
+                <Text style={styles.settingValue}>1.0.0 (Beta)</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider}/>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🏫</Text>
+              <View>
+                <Text style={styles.settingLabel}>College</Text>
+                <Text style={styles.settingValue}>SRMIST Ramapuram</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider}/>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>⚡</Text>
+              <View>
+                <Text style={styles.settingLabel}>Built by</Text>
+                <Text style={styles.settingValue}>Aryaman — Project Alpha</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+          <Text style={styles.logoutIcon}>🚪</Text>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.footer}>MessMate v1.0 • Made with ❤️ at SRMIST</Text>
+      </ScrollView>
+
+      {/* Change Password Modal */}
+      <Modal visible={passwordModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Current password"
+              placeholderTextColor="#bbb"
+              value={oldPassword}
+              onChangeText={setOldPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="New password (min 6 chars)"
+              placeholderTextColor="#bbb"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Confirm new password"
+              placeholderTextColor="#bbb"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setPasswordModal(false);
+                  setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+                }}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveBtn, loading && { backgroundColor: '#aaa' }]}
+                onPress={changePassword}
+                disabled={loading}>
+                <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  content: { padding: 16, paddingBottom: 40 },
+  profileCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24, elevation: 2 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEF', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 28, fontWeight: 'bold', color: '#6C63FF' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 2 },
+  profileEmail: { fontSize: 12, color: '#aaa', marginBottom: 8 },
+  roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  roleBadgeText: { fontSize: 12, fontWeight: '600' },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#aaa', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  section: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, elevation: 1, overflow: 'hidden' },
+  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
+  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  settingIcon: { fontSize: 20, width: 32, textAlign: 'center' },
+  settingLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
+  settingValue: { fontSize: 12, color: '#aaa', marginTop: 1 },
+  arrow: { fontSize: 20, color: '#ccc' },
+  divider: { height: 1, backgroundColor: '#f5f5f5', marginLeft: 58 },
+  logoutBtn: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, elevation: 1, borderWidth: 1, borderColor: '#FFEBEE' },
+  logoutIcon: { fontSize: 18 },
+  logoutText: { color: '#f44336', fontWeight: 'bold', fontSize: 15 },
+  footer: { textAlign: 'center', color: '#ccc', fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20 },
+  modalInput: { borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', backgroundColor: '#fafafa', marginBottom: 12 },
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#eee', alignItems: 'center' },
+  cancelBtnText: { color: '#888', fontWeight: '600' },
+  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#6C63FF', alignItems: 'center' },
+  saveBtnText: { color: '#fff', fontWeight: 'bold' },
+});
