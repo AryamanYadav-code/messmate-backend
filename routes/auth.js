@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -34,22 +35,21 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expires_at]
     );
 
-    await transporter.sendMail({
-      from: `"MessMate App" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Your MessMate Verification Code',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
-          <h2 style="color: #6C63FF;">MessMate Email Verification</h2>
-          <p>Your verification code is:</p>
-          <div style="background: #f0f0ff; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
-            <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
-          </div>
-          <p style="color: #888;">This code expires in 10 minutes.</p>
-          <p style="color: #888;">If you didn't request this, ignore this email.</p>
-        </div>
-      `
-    });
+    await resend.emails.send({
+  from: 'MessMate <onboarding@resend.dev>',
+  to: email,
+  subject: 'Your MessMate Verification Code',
+  html: `
+    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
+      <h2 style="color: #6C63FF;">MessMate Email Verification</h2>
+      <p>Your verification code is:</p>
+      <div style="background: #f0f0ff; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
+        <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
+      </div>
+      <p style="color: #888;">This code expires in 10 minutes.</p>
+    </div>
+  `
+});
 
     res.json({ message: 'OTP sent successfully!' });
   } catch (err) {
