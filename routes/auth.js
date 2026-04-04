@@ -6,7 +6,7 @@ const db = require('../config/db');
 
 router.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
-  const allowedDomains = ['@srmist.edu.in', '@srmuniv.ac.in', '@test.com'];
+  const allowedDomains = ['@srmist.edu.in', '@srmuniv.ac.in', '@test.com', '@mess.com'];
   const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
   if (!isAllowed) {
     return res.status(400).json({ error: 'Only college email addresses are allowed' });
