@@ -1,3 +1,4 @@
+import { Text, TextInput } from 'react-native';
 import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
 import AddItemScreen from './screens/admin/AddItemScreen';
@@ -17,6 +18,12 @@ import PickupCodeScreen from './screens/student/PickupCodeScreen';
 import AdminDashScreen from './screens/admin/AdminDashScreen';
 import OrderQueueScreen from './screens/admin/OrderQueueScreen';
 import SettingsScreen from './screens/student/SettingsScreen';
+
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.allowFontScaling = false;
+
+TextInput.defaultProps = TextInput.defaultProps || {};
+TextInput.defaultProps.allowFontScaling = false;
 
 const Stack = createNativeStackNavigator();
 
