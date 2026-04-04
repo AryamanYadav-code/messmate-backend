@@ -7,22 +7,39 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
 
-  const validate = () => {
-    if (!name.trim()) return 'Please enter your full name';
-    if (!email.trim()) return 'Please enter your email';
-    if (password.length < 6) return 'Password must be at least 6 characters';
-    if (password !== confirmPassword) return 'Passwords do not match';
-    return null;
+  const sendOtp = async () => {
+    if (!email) return Alert.alert('Error', 'Please enter your email first');
+    if (password.length < 6) return Alert.alert('Error', 'Password must be at least 6 characters');
+    if (password !== confirmPassword) return Alert.alert('Error', 'Passwords do not match');
+    if (!name.trim()) return Alert.alert('Error', 'Please enter your name');
+
+    setLoading(true);
+    try {
+      await api.post('/auth/send-otp', { email });
+      setOtpSent(true);
+      Alert.alert('OTP Sent!', `Check your email ${email} for the 6-digit code`);
+      let t = 60;
+      setTimer(t);
+      const interval = setInterval(() => {
+        t--;
+        setTimer(t);
+        if (t <= 0) clearInterval(interval);
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to send OTP');
+    } finally { setLoading(false); }
   };
 
   const register = async () => {
-    const error = validate();
-    if (error) return Alert.alert('Invalid Input', error);
+    if (!otp || otp.length !== 6) return Alert.alert('Error', 'Please enter the 6-digit OTP');
     setLoading(true);
     try {
-      await api.post('/auth/register', { name, email, password });
+      await api.post('/auth/register', { name, email, password, otp });
       Alert.alert('Success! 🎉', 'Account created! Please login.', [
         { text: 'Login Now', onPress: () => navigation.navigate('Login') }
       ]);
@@ -49,30 +66,19 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.inputLabel}>Full Name</Text>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputIcon}>👤</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Aryaman Singh"
-              placeholderTextColor="#bbb"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
+            <TextInput style={styles.input} placeholder="e.g. Aryaman Singh"
+              placeholderTextColor="#bbb" value={name} onChangeText={setName}
+              autoCapitalize="words" editable={!otpSent}/>
           </View>
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>College Email</Text>
+          <Text style={styles.inputLabel}>Email</Text>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputIcon}>✉️</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="yourname@srmist.edu.in"
-              placeholderTextColor="#bbb"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <TextInput style={styles.input} placeholder="yourname@srmist.edu.in"
+              placeholderTextColor="#bbb" value={email} onChangeText={setEmail}
+              keyboardType="email-address" autoCapitalize="none" editable={!otpSent}/>
           </View>
         </View>
 
@@ -80,46 +86,68 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.inputLabel}>Password</Text>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputIcon}>🔒</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Min 6 characters"
-              placeholderTextColor="#bbb"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <TextInput style={styles.input} placeholder="Min 6 characters"
+              placeholderTextColor="#bbb" value={password} onChangeText={setPassword}
+              secureTextEntry editable={!otpSent}/>
           </View>
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Confirm Password</Text>
           <View style={[styles.inputWrapper,
-            confirmPassword.length > 0 && {
-              borderColor: password === confirmPassword ? '#4CAF50' : '#f44336'
-            }]}>
+            confirmPassword.length > 0 && { borderColor: password === confirmPassword ? '#4CAF50' : '#f44336' }]}>
             <Text style={styles.inputIcon}>🔒</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Re-enter password"
-              placeholderTextColor="#bbb"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
+            <TextInput style={styles.input} placeholder="Re-enter password"
+              placeholderTextColor="#bbb" value={confirmPassword}
+              onChangeText={setConfirmPassword} secureTextEntry editable={!otpSent}/>
           </View>
-          {confirmPassword.length > 0 && password !== confirmPassword && (
-            <Text style={styles.errorText}>Passwords do not match</Text>
-          )}
         </View>
 
-        <TouchableOpacity
-          style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
-          onPress={register}
-          disabled={loading}>
-          <Text style={styles.registerBtnText}>
-            {loading ? 'Creating Account...' : 'Create Account'}
-          </Text>
-        </TouchableOpacity>
+        {!otpSent ? (
+          <TouchableOpacity
+            style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+            onPress={sendOtp} disabled={loading}>
+            <Text style={styles.registerBtnText}>
+              {loading ? 'Sending OTP...' : 'Send Verification Code'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <View style={styles.otpBox}>
+              <Text style={styles.otpLabel}>Enter the 6-digit code sent to</Text>
+              <Text style={styles.otpEmail}>{email}</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Verification Code</Text>
+              <View style={[styles.inputWrapper, { borderColor: '#6C63FF' }]}>
+                <Text style={styles.inputIcon}>🔑</Text>
+                <TextInput style={[styles.input, styles.otpInput]}
+                  placeholder="Enter 6-digit OTP"
+                  placeholderTextColor="#bbb" value={otp}
+                  onChangeText={setOtp} keyboardType="number-pad"
+                  maxLength={6}/>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+              onPress={register} disabled={loading}>
+              <Text style={styles.registerBtnText}>
+                {loading ? 'Creating Account...' : 'Verify & Create Account'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.resendBtn}
+              onPress={timer > 0 ? null : sendOtp}
+              disabled={timer > 0}>
+              <Text style={[styles.resendBtnText, timer > 0 && { color: '#aaa' }]}>
+                {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={styles.divider}>
           <View style={styles.dividerLine}/>
@@ -151,10 +179,15 @@ const styles = StyleSheet.create({
   inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, paddingHorizontal: 12, backgroundColor: '#fafafa' },
   inputIcon: { fontSize: 16, marginRight: 8 },
   input: { flex: 1, paddingVertical: 13, fontSize: 14, color: '#333' },
-  errorText: { color: '#f44336', fontSize: 12, marginTop: 4 },
+  otpInput: { fontSize: 20, fontWeight: 'bold', letterSpacing: 4 },
+  otpBox: { backgroundColor: '#f0f0ff', borderRadius: 12, padding: 14, marginBottom: 16, alignItems: 'center' },
+  otpLabel: { fontSize: 13, color: '#888' },
+  otpEmail: { fontSize: 14, fontWeight: 'bold', color: '#6C63FF', marginTop: 4 },
   registerBtn: { backgroundColor: '#6C63FF', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
   registerBtnDisabled: { backgroundColor: '#aaa' },
   registerBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  resendBtn: { alignItems: 'center', marginTop: 12 },
+  resendBtnText: { color: '#6C63FF', fontSize: 13, fontWeight: '500' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#eee' },
   dividerText: { color: '#aaa', paddingHorizontal: 10, fontSize: 12 },
