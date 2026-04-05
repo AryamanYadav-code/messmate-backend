@@ -65,6 +65,8 @@ export default function App() {
         <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
         <Stack.Screen name="AdManager" component={AdManagerScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Students" component={StudentsScreen} />
+        <Stack.Screen name="Staff" component={StaffScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
