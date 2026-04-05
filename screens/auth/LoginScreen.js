@@ -10,27 +10,41 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('student');
 
-  const login = async () => {
-    if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/login', { email, password });
-      await AsyncStorage.setItem('token', res.data.token);
-      await AsyncStorage.setItem('role', res.data.role);
-      await AsyncStorage.setItem('name', res.data.name);
-      await AsyncStorage.setItem('email', email);
-      await AsyncStorage.setItem('user_id', res.data.userId.toString());
-      if (res.data.role === 'admin' || res.data.role === 'superadmin') {
-        navigation.replace('AdminDash');
-      } else {
-        navigation.replace('Home');
-      }
-    } catch (err) {
-      Alert.alert('Login Failed', err.response?.data?.error || err.message);
-    } finally {
+ const login = async () => {
+  if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
+  setLoading(true);
+  try {
+    const res = await api.post('/auth/login', { email, password });
+
+    // Check if selected role matches actual role
+    if (role === 'admin' && res.data.role === 'student') {
+      Alert.alert('Access Denied', 'This account is not an admin account. Please use Student login.');
       setLoading(false);
+      return;
     }
-  };
+    if (role === 'student' && (res.data.role === 'admin' || res.data.role === 'superadmin')) {
+      Alert.alert('Access Denied', 'This is an admin account. Please use Admin login.');
+      setLoading(false);
+      return;
+    }
+
+    await AsyncStorage.setItem('token', res.data.token);
+    await AsyncStorage.setItem('role', res.data.role);
+    await AsyncStorage.setItem('name', res.data.name);
+    await AsyncStorage.setItem('user_id', res.data.userId.toString());
+    await AsyncStorage.setItem('email', email);
+
+    if (res.data.role === 'admin' || res.data.role === 'superadmin') {
+      navigation.replace('AdminDash');
+    } else {
+      navigation.replace('Home');
+    }
+  } catch (err) {
+    Alert.alert('Login Failed', err.response?.data?.error || err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
