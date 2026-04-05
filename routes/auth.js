@@ -4,8 +4,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS
+  }
+});
 
 
 
@@ -26,8 +35,8 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expires_at]
     );
 
-    await resend.emails.send({
-  from: 'MessMate <onboarding@resend.dev>',
+   await transporter.sendMail({
+  from: '"MessMate App" <aryamanyadav19@gmail.com>',
   to: email,
   subject: 'Your MessMate Verification Code',
   html: `
@@ -38,6 +47,7 @@ router.post('/send-otp', async (req, res) => {
         <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
       </div>
       <p style="color: #888;">This code expires in 10 minutes.</p>
+      <p style="color: #888;">If you didn't request this, ignore this email.</p>
     </div>
   `
 });
