@@ -6,8 +6,10 @@ import api from '../../services/api';
 export default function AdminDashScreen({ navigation }) {
   const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0 });
   const [pendingCount, setPendingCount] = useState(0);
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
+    AsyncStorage.getItem('role').then(r => setUserRole(r));
     fetchStats();
     fetchPending();
     const interval = setInterval(() => {
@@ -100,6 +102,31 @@ export default function AdminDashScreen({ navigation }) {
           </View>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
+        {userRole === 'superadmin' && (
+  <>
+    <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
+      <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+        <Text style={styles.actionIconText}>🎓</Text>
+      </View>
+      <View style={styles.actionInfo}>
+        <Text style={styles.actionTitle}>Student Management</Text>
+        <Text style={styles.actionSub}>View and remove students</Text>
+      </View>
+      <Text style={styles.arrow}>›</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Staff')}>
+      <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+        <Text style={styles.actionIconText}>👨‍🍳</Text>
+      </View>
+      <View style={styles.actionInfo}>
+        <Text style={styles.actionTitle}>Staff Management</Text>
+        <Text style={styles.actionSub}>Add or remove sub-admins</Text>
+      </View>
+      <Text style={styles.arrow}>›</Text>
+    </TouchableOpacity>
+  </>
+)}
         <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
   <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
     <Text style={styles.actionIconText}>📢</Text>
