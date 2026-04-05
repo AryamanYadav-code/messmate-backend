@@ -4,17 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS
-  }
-});
+const axios = require('axios');
 
 
 
@@ -35,11 +25,11 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expires_at]
     );
 
-   await transporter.sendMail({
-  from: '"MessMate App" <aryamanyadav19@gmail.com>',
-  to: email,
+  await axios.post('https://api.brevo.com/v3/smtp/email', {
+  sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+  to: [{ email: email }],
   subject: 'Your MessMate Verification Code',
-  html: `
+  htmlContent: `
     <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
       <h2 style="color: #6C63FF;">MessMate Email Verification</h2>
       <p>Your verification code is:</p>
@@ -47,9 +37,13 @@ router.post('/send-otp', async (req, res) => {
         <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
       </div>
       <p style="color: #888;">This code expires in 10 minutes.</p>
-      <p style="color: #888;">If you didn't request this, ignore this email.</p>
     </div>
   `
+}, {
+  headers: {
+    'api-key': process.env.BREVO_API_KEY,
+    'Content-Type': 'application/json'
+  }
 });
 
     res.json({ message: 'OTP sent successfully!' });
