@@ -18,6 +18,8 @@ import PickupCodeScreen from './screens/student/PickupCodeScreen';
 import AdminDashScreen from './screens/admin/AdminDashScreen';
 import OrderQueueScreen from './screens/admin/OrderQueueScreen';
 import SettingsScreen from './screens/student/SettingsScreen';
+import StudentsScreen from './screens/admin/StudentsScreen';
+import StaffScreen from './screens/admin/StaffScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
