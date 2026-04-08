@@ -12,19 +12,14 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@react-navigation/native-stack": "^7.14.10",
-    "axios": "^1.14.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
-    "mysql2": "^3.20.0",
     "nodemailer": "^8.0.3",
     "pg": "^8.20.0",
     "qrcode": "^1.5.4",
-    "resend": "^6.10.0",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
