@@ -2,6 +2,7 @@
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 const STATUS_COLORS = {
   pending: '#FF9800',
@@ -13,6 +14,9 @@ const STATUS_COLORS = {
 };
 
 export default function OrderHistoryScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,24 +91,24 @@ export default function OrderHistoryScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', padding: 20, paddingTop: 50, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  back: { color: '#fff', fontSize: 20 },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  loading: { textAlign: 'center', marginTop: 40, color: '#888' },
-  card: { backgroundColor: '#fff', margin: 10, borderRadius: 12, padding: 16, elevation: 2 },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, padding: 20, paddingTop: 50, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  back: { color: colors.headerText, fontSize: 20 },
+  title: { fontSize: 18, fontWeight: 'bold', color: colors.headerText },
+  loading: { textAlign: 'center', marginTop: 40, color: colors.textSecondary },
+  card: { backgroundColor: colors.card, margin: 10, borderRadius: 12, padding: 16, elevation: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  orderId: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  orderId: { fontSize: 16, fontWeight: 'bold', color: colors.text },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   cardBody: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  amount: { fontSize: 18, fontWeight: 'bold', color: '#6C63FF' },
-  slot: { fontSize: 14, color: '#888', textTransform: 'capitalize' },
-  date: { fontSize: 12, color: '#aaa' },
-  pickupHint: { color: '#4CAF50', fontWeight: 'bold', fontSize: 13, marginTop: 8 },
+  amount: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+  slot: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
+  date: { fontSize: 12, color: colors.textSecondary },
+  pickupHint: { color: colors.success, fontWeight: 'bold', fontSize: 13, marginTop: 8 },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
   emptyIcon: { fontSize: 60, marginBottom: 16 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: '#888' }
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  emptySubtext: { fontSize: 14, color: colors.textSecondary }
 });

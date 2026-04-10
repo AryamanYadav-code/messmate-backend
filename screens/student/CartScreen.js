@@ -2,8 +2,11 @@
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function CartScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [cart, setCart] = useState(route.params?.cart || []);
   const [loading, setLoading] = useState(false);
 
@@ -113,35 +116,35 @@ export default function CartScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   itemCount: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyIcon: { fontSize: 64, marginBottom: 16 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20 },
-  browseBtn: { backgroundColor: '#6C63FF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 20 },
+  browseBtn: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   browseBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', elevation: 1, gap: 10 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', elevation: 1, gap: 10 },
   vegDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   itemInfo: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  itemPrice: { fontSize: 12, color: '#888', marginTop: 2 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6C63FF', borderRadius: 8, overflow: 'hidden' },
+  itemName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  itemPrice: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { paddingVertical: 6, paddingHorizontal: 10 },
   qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 14, paddingHorizontal: 6 },
-  itemTotal: { fontSize: 14, fontWeight: 'bold', color: '#333', minWidth: 40, textAlign: 'right' },
-  footer: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 10 },
+  itemTotal: { fontSize: 14, fontWeight: 'bold', color: colors.text, minWidth: 40, textAlign: 'right' },
+  footer: { backgroundColor: colors.card, padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 10 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  summaryLabel: { color: '#888', fontSize: 14 },
-  summaryValue: { color: '#333', fontSize: 14, fontWeight: '500' },
-  divider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 10 },
-  totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  totalValue: { fontSize: 18, fontWeight: 'bold', color: '#6C63FF' },
-  orderBtn: { backgroundColor: '#6C63FF', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, elevation: 3 },
-  orderBtnDisabled: { backgroundColor: '#aaa' },
+  summaryLabel: { color: colors.textSecondary, fontSize: 14 },
+  summaryValue: { color: colors.text, fontSize: 14, fontWeight: '500' },
+  divider: { height: 1, backgroundColor: colors.divider, marginVertical: 10 },
+  totalLabel: { fontSize: 16, fontWeight: 'bold', color: colors.text },
+  totalValue: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+  orderBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, elevation: 3 },
+  orderBtnDisabled: { backgroundColor: colors.border },
   orderBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

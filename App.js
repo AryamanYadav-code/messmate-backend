@@ -4,10 +4,11 @@ import MenuManagerScreen from './screens/admin/MenuManagerScreen';
 import AddItemScreen from './screens/admin/AddItemScreen';
 import WalletScreen from './screens/student/WalletScreen';
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -17,6 +18,7 @@ import OrderTrackScreen from './screens/student/OrderTrackScreen';
 import PickupCodeScreen from './screens/student/PickupCodeScreen';
 import AdminDashScreen from './screens/admin/AdminDashScreen';
 import OrderQueueScreen from './screens/admin/OrderQueueScreen';
+import AdminOrderHistoryScreen from './screens/admin/AdminOrderHistoryScreen';
 import SettingsScreen from './screens/student/SettingsScreen';
 import StudentsScreen from './screens/admin/StudentsScreen';
 import StaffScreen from './screens/admin/StaffScreen';
@@ -29,8 +31,9 @@ TextInput.defaultProps.allowFontScaling = false;
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
+function MainNav() {
   const [initialRoute, setInitialRoute] = useState(null);
+  const { isDark } = useTheme();
 
   useEffect(() => { checkLogin(); }, []);
 
@@ -51,7 +54,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
@@ -69,7 +72,16 @@ export default function App() {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Students" component={StudentsScreen} />
         <Stack.Screen name="Staff" component={StaffScreen} />
+        <Stack.Screen name="AdminOrderHistory" component={AdminOrderHistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainNav />
+    </ThemeProvider>
   );
 }

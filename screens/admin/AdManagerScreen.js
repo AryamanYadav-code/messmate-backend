@@ -1,8 +1,12 @@
  import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, TextInput, Image, ScrollView, RefreshControl } from 'react-native';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function AdManagerScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [ads, setAds] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -171,35 +175,35 @@ export default function AdManagerScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   addBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  formCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2 },
-  formTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6 },
-  input: { borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', backgroundColor: '#fafafa', marginBottom: 12 },
+  formCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2 },
+  formTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+  input: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, marginBottom: 12 },
   previewImage: { width: '100%', height: 140, borderRadius: 10, marginBottom: 12 },
-  submitBtn: { backgroundColor: '#6C63FF', padding: 14, borderRadius: 12, alignItems: 'center' },
+  submitBtn: { backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: 'center' },
   submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  adCard: { backgroundColor: '#fff', borderRadius: 14, marginBottom: 10, overflow: 'hidden', elevation: 2, flexDirection: 'row', height: 100 },
+  adCard: { backgroundColor: colors.card, borderRadius: 14, marginBottom: 10, overflow: 'hidden', elevation: 2, flexDirection: 'row', height: 100 },
   adImage: { width: 110, height: '100%' },
-  adImagePlaceholder: { width: 110, height: '100%', backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
-  adImagePlaceholderText: { color: '#aaa', fontSize: 12 },
+  adImagePlaceholder: { width: 110, height: '100%', backgroundColor: colors.inputBg, justifyContent: 'center', alignItems: 'center' },
+  adImagePlaceholderText: { color: colors.textSecondary, fontSize: 12 },
   adInfo: { flex: 1, padding: 12, justifyContent: 'space-between' },
   adTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  adTitle: { fontSize: 14, fontWeight: 'bold', color: '#333', flex: 1, marginRight: 8 },
+  adTitle: { fontSize: 14, fontWeight: 'bold', color: colors.text, flex: 1, marginRight: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  adStatus: { fontSize: 12, color: '#aaa' },
+  adStatus: { fontSize: 12, color: colors.textSecondary },
   adActions: { flexDirection: 'row', gap: 8 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8 },
   actionBtnText: { fontSize: 12, fontWeight: '600' },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  emptySub: { color: '#aaa', fontSize: 14 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  emptySub: { color: colors.textSecondary, fontSize: 14 },
 });
 
