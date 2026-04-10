@@ -76,9 +76,14 @@ export default function AdminDashScreen({ navigation }) {
           <Text style={styles.headerSub}>Welcome back</Text>
           <Text style={styles.headerTitle}>Admin Panel</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -209,6 +214,9 @@ const getStyles = (colors) => StyleSheet.create({
   header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
   headerTitle: { color: colors.headerText, fontSize: 22, fontWeight: 'bold' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  settingsBtn: { backgroundColor: 'rgba(255,255,255,0.2)', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  settingsIcon: { fontSize: 18, alignSelf: 'center' },
   logoutBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   logoutText: { color: '#fff', fontSize: 13 },
   content: { padding: 16 },
