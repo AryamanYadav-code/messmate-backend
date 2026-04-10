@@ -2,10 +2,14 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Image, 
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState('lunch');
   const [cart, setCart] = useState([]);
@@ -222,29 +226,29 @@ useEffect(() => {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   headerBottom: { flexDirection: 'row', gap: 8 },
-  greeting: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  greeting: { color: colors.headerText, fontSize: 20, fontWeight: 'bold' },
   logoutText: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
   headerBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  headerBtnText: { color: '#fff', fontWeight: '500', fontSize: 12 },
-  tabs: { backgroundColor: '#fff', paddingVertical: 8, paddingHorizontal: 12, flexDirection: 'row' },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, marginHorizontal: 4, backgroundColor: '#f0f0f0' },
-  activeTab: { backgroundColor: '#6C63FF' },
-  tabText: { color: '#888', fontWeight: '500', fontSize: 12, textAlign: 'center' },
-  activeTabText: { color: '#fff' },
+  headerBtnText: { color: colors.headerText, fontWeight: '500', fontSize: 12 },
+  tabs: { backgroundColor: colors.card, paddingVertical: 8, paddingHorizontal: 12, flexDirection: 'row' },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, marginHorizontal: 4, backgroundColor: colors.tabBackground },
+  activeTab: { backgroundColor: colors.primary },
+  tabText: { color: colors.textSecondary, fontWeight: '500', fontSize: 12, textAlign: 'center' },
+  activeTabText: { color: colors.headerText },
   adContainer: { margin: 10, borderRadius: 14, overflow: 'hidden', height: 140, elevation: 3 },
   adImage: { width: '100%', height: '100%' },
-  adOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', padding: 10 },
+  adOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.overlay, padding: 10 },
   adTitle: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   adDots: { position: 'absolute', bottom: 36, right: 10, flexDirection: 'row', gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
   dotActive: { backgroundColor: '#fff', width: 16 },
-  activeOrderBanner: { backgroundColor: '#6C63FF', marginHorizontal: 10, marginBottom: 4, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 4 },
-  activeOrderReady: { backgroundColor: '#4CAF50' },
+  activeOrderBanner: { backgroundColor: colors.primary, marginHorizontal: 10, marginBottom: 4, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 4 },
+  activeOrderReady: { backgroundColor: colors.success },
   activeOrderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activeOrderIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
   activeOrderIcon: { fontSize: 20 },
@@ -252,34 +256,23 @@ const styles = StyleSheet.create({
   activeOrderStatus: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
   activeOrderRight: { alignItems: 'flex-end' },
   activeOrderAmount: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  pickupCodeHint: { color: '#FFD700', fontSize: 11, fontWeight: 'bold', marginBottom: 4 },
-  card: { backgroundColor: '#fff', marginHorizontal: 10, marginBottom: 8, borderRadius: 14, padding: 14, elevation: 1 },
+  pickupCodeHint: { color: colors.warning, fontSize: 11, fontWeight: 'bold', marginBottom: 4 },
   cardInfo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  vegDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-  itemName: { fontSize: 15, fontWeight: 'bold', color: '#333' },
-  itemDesc: { fontSize: 12, color: '#999', marginTop: 2 },
-  itemPrice: { fontSize: 14, color: '#6C63FF', fontWeight: 'bold', marginTop: 4 },
-  addBtn: { backgroundColor: '#6C63FF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6C63FF', borderRadius: 8, overflow: 'hidden' },
-  qtyBtn: { padding: 7, paddingHorizontal: 11 },
-  qtyBtnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
-  qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 14, paddingHorizontal: 4 },
-  empty: { textAlign: 'center', color: '#888', marginTop: 40, fontSize: 15 },
-  card: { backgroundColor: '#fff', marginHorizontal: 10, marginBottom: 8, borderRadius: 14, overflow: 'hidden', elevation: 1, flexDirection: 'row', height: 100 },
+  empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 40, fontSize: 15 },
+  card: { backgroundColor: colors.card, marginHorizontal: 10, marginBottom: 8, borderRadius: 14, overflow: 'hidden', elevation: 1, flexDirection: 'row', height: 100 },
   itemImage: { width: 100, height: '100%' },
-  itemImagePlaceholder: { width: 100, height: '100%', backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
+  itemImagePlaceholder: { width: 100, height: '100%', backgroundColor: colors.inputBg, justifyContent: 'center', alignItems: 'center' },
   itemImagePlaceholderText: { fontSize: 30 },
   cardContent: { flex: 1, padding: 12, justifyContent: 'space-between' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vegDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  itemName: { fontSize: 14, fontWeight: 'bold', color: '#333', flex: 1 },
-  itemDesc: { fontSize: 11, color: '#999' },
-  itemPrice: { fontSize: 14, color: '#6C63FF', fontWeight: 'bold' },
-  addBtn: { backgroundColor: '#6C63FF', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  itemName: { fontSize: 14, fontWeight: 'bold', color: colors.text, flex: 1 },
+  itemDesc: { fontSize: 11, color: colors.textSecondary },
+  itemPrice: { fontSize: 14, color: colors.primary, fontWeight: 'bold' },
+  addBtn: { backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6C63FF', borderRadius: 8, overflow: 'hidden' },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { padding: 6, paddingHorizontal: 10 },
   qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 13, paddingHorizontal: 4 }

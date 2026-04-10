@@ -23,6 +23,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Mess App Backend Running!' });
 });
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 });

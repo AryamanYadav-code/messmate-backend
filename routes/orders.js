@@ -47,6 +47,18 @@ router.get('/admin/pending', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/admin/history', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT o.*, u.name, u.email FROM orders o
+       JOIN users u ON o.user_id = u.user_id
+       WHERE o.status IN ('delivered', 'cancelled')
+       ORDER BY o.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:order_id', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM orders WHERE order_id = $1', [req.params.order_id]);

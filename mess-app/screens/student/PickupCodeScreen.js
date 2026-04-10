@@ -1,7 +1,10 @@
  import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function PickupCodeScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { order } = route.params;
 
   return (
@@ -23,13 +26,13 @@ export default function PickupCodeScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#888', marginBottom: 40, textAlign: 'center' },
-  codeBox: { backgroundColor: '#6C63FF', borderRadius: 20, padding: 40, marginBottom: 30 },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: colors.textSecondary, marginBottom: 40, textAlign: 'center' },
+  codeBox: { backgroundColor: colors.primary, borderRadius: 20, padding: 40, marginBottom: 30 },
   code: { fontSize: 52, fontWeight: 'bold', color: '#fff', letterSpacing: 8 },
-  note: { fontSize: 16, color: '#888', marginBottom: 8 },
-  btn: { backgroundColor: '#6C63FF', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 30, width: '100%' },
+  note: { fontSize: 16, color: colors.textSecondary, marginBottom: 8 },
+  btn: { backgroundColor: colors.primary, padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 30, width: '100%' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function LoginScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -129,33 +133,34 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#6C63FF' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.primary },
   topSection: { alignItems: 'center', paddingTop: 70, paddingBottom: 30 },
   logoBox: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   logoIcon: { fontSize: 40 },
   appName: { fontSize: 32, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
   tagline: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  card: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingTop: 32 },
-  cardTitle: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  roleSelector: { flexDirection: 'row', backgroundColor: '#f5f5f5', borderRadius: 12, padding: 4, marginBottom: 24 },
+  card: { flex: 1, backgroundColor: colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingTop: 32 },
+  cardTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 16 },
+  roleSelector: { flexDirection: 'row', backgroundColor: colors.tabBackground, borderRadius: 12, padding: 4, marginBottom: 24 },
   roleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
-  roleBtnActive: { backgroundColor: '#6C63FF', elevation: 2 },
+  roleBtnActive: { backgroundColor: colors.primary, elevation: 2 },
   roleIcon: { fontSize: 16 },
-  roleBtnText: { fontSize: 14, fontWeight: '600', color: '#888' },
+  roleBtnText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   roleBtnTextActive: { color: '#fff' },
   inputGroup: { marginBottom: 16 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, paddingHorizontal: 12, backgroundColor: '#fafafa' },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.inputBg },
   inputIcon: { fontSize: 16, marginRight: 8 },
-  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#333' },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: colors.text },
   eyeIcon: { fontSize: 16, padding: 4 },
-  loginBtn: { backgroundColor: '#6C63FF', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
-  loginBtnDisabled: { backgroundColor: '#aaa' },
+  loginBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
+  loginBtnDisabled: { backgroundColor: colors.border },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#eee' },
-  dividerText: { color: '#aaa', paddingHorizontal: 12, fontSize: 13 },
-  registerBtn: { borderWidth: 1.5, borderColor: '#6C63FF', padding: 14, borderRadius: 12, alignItems: 'center' },
-  registerBtnText: { color: '#6C63FF', fontSize: 15, fontWeight: 'bold' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.divider },
+  dividerText: { color: colors.textSecondary, paddingHorizontal: 12, fontSize: 13 },
+  registerBtn: { borderWidth: 1.5, borderColor: colors.primary, padding: 14, borderRadius: 12, alignItems: 'center' },
+  registerBtnText: { color: colors.primary, fontSize: 15, fontWeight: 'bold' },
 });
+

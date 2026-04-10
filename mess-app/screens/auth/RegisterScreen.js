@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function RegisterScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -118,9 +122,9 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.otpEmail}>{email}</Text>
             </View>
 
-            <View style={styles.inputGroup}>
+              <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Verification Code</Text>
-              <View style={[styles.inputWrapper, { borderColor: '#6C63FF' }]}>
+              <View style={[styles.inputWrapper, { borderColor: colors.primary }]}>
                 <Text style={styles.inputIcon}>🔑</Text>
                 <TextInput style={[styles.input, styles.otpInput]}
                   placeholder="Enter 6-digit OTP"
@@ -163,34 +167,34 @@ export default function RegisterScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#6C63FF' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.primary },
   content: { flexGrow: 1 },
   topSection: { alignItems: 'center', paddingTop: 50, paddingBottom: 24 },
   logoBox: { width: 70, height: 70, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   logoIcon: { fontSize: 36 },
   appName: { fontSize: 28, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
   tagline: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  card: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingTop: 28 },
-  cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: '#aaa', marginBottom: 24 },
+  card: { flex: 1, backgroundColor: colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingTop: 28 },
+  cardTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  cardSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 24 },
   inputGroup: { marginBottom: 14 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, paddingHorizontal: 12, backgroundColor: '#fafafa' },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.inputBg },
   inputIcon: { fontSize: 16, marginRight: 8 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: '#333' },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: colors.text },
   otpInput: { fontSize: 20, fontWeight: 'bold', letterSpacing: 4 },
-  otpBox: { backgroundColor: '#f0f0ff', borderRadius: 12, padding: 14, marginBottom: 16, alignItems: 'center' },
-  otpLabel: { fontSize: 13, color: '#888' },
-  otpEmail: { fontSize: 14, fontWeight: 'bold', color: '#6C63FF', marginTop: 4 },
-  registerBtn: { backgroundColor: '#6C63FF', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
-  registerBtnDisabled: { backgroundColor: '#aaa' },
+  otpBox: { backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14, marginBottom: 16, alignItems: 'center' },
+  otpLabel: { fontSize: 13, color: colors.textSecondary },
+  otpEmail: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginTop: 4 },
+  registerBtn: { backgroundColor: colors.primary, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
+  registerBtnDisabled: { backgroundColor: colors.border },
   registerBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   resendBtn: { alignItems: 'center', marginTop: 12 },
-  resendBtnText: { color: '#6C63FF', fontSize: 13, fontWeight: '500' },
+  resendBtnText: { color: colors.primary, fontSize: 13, fontWeight: '500' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#eee' },
-  dividerText: { color: '#aaa', paddingHorizontal: 10, fontSize: 12 },
-  loginBtn: { borderWidth: 1.5, borderColor: '#6C63FF', padding: 13, borderRadius: 12, alignItems: 'center' },
-  loginBtnText: { color: '#6C63FF', fontSize: 15, fontWeight: 'bold' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.divider },
+  dividerText: { color: colors.textSecondary, paddingHorizontal: 10, fontSize: 12 },
+  loginBtn: { borderWidth: 1.5, borderColor: colors.primary, padding: 13, borderRadius: 12, alignItems: 'center' },
+  loginBtnText: { color: colors.primary, fontSize: 15, fontWeight: 'bold' },
 });

@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert, Switch, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function SettingsScreen({ navigation }) {
+  const { colors, isDark, changeTheme } = useTheme();
+  const styles = getStyles(colors);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [userId, setUserId] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(isDark);
   const [notifications, setNotifications] = useState(true);
   const [passwordModal, setPasswordModal] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
@@ -31,7 +35,7 @@ export default function SettingsScreen({ navigation }) {
     setRole(r || '');
     setUserId(id || '');
     setEmail(e || '');
-    setDarkMode(dm === 'true');
+    setDarkMode(isDark);
     setNotifications(notif !== 'false');
   };
 
@@ -59,8 +63,7 @@ export default function SettingsScreen({ navigation }) {
 
   const toggleDarkMode = async (val) => {
     setDarkMode(val);
-    await AsyncStorage.setItem('darkMode', val.toString());
-    Alert.alert('Coming Soon', 'Dark mode will be available in the next update!');
+    changeTheme(val ? 'dark' : 'light');
   };
 
   const toggleNotifications = async (val) => {
@@ -160,7 +163,7 @@ export default function SettingsScreen({ navigation }) {
               <Text style={styles.settingIcon}>🌙</Text>
               <View>
                 <Text style={styles.settingLabel}>Dark Mode</Text>
-                <Text style={styles.settingValue}>Coming soon</Text>
+                <Text style={styles.settingValue}>Switch theme</Text>
               </View>
             </View>
             <Switch
@@ -291,40 +294,40 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   content: { padding: 16, paddingBottom: 40 },
-  profileCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24, elevation: 2 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEF', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 28, fontWeight: 'bold', color: '#6C63FF' },
+  profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24, elevation: 2 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 28, fontWeight: 'bold', color: colors.primary },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 2 },
-  profileEmail: { fontSize: 12, color: '#aaa', marginBottom: 8 },
+  profileName: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 2 },
+  profileEmail: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
   roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   roleBadgeText: { fontSize: 12, fontWeight: '600' },
-  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#aaa', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  section: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, elevation: 1, overflow: 'hidden' },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  section: { backgroundColor: colors.card, borderRadius: 16, marginBottom: 20, elevation: 1, overflow: 'hidden' },
   settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   settingIcon: { fontSize: 20, width: 32, textAlign: 'center' },
-  settingLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
-  settingValue: { fontSize: 12, color: '#aaa', marginTop: 1 },
-  arrow: { fontSize: 20, color: '#ccc' },
-  divider: { height: 1, backgroundColor: '#f5f5f5', marginLeft: 58 },
-  logoutBtn: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, elevation: 1, borderWidth: 1, borderColor: '#FFEBEE' },
+  settingLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+  settingValue: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+  arrow: { fontSize: 20, color: colors.border },
+  divider: { height: 1, backgroundColor: colors.divider, marginLeft: 58 },
+  logoutBtn: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, elevation: 1, borderWidth: 1, borderColor: colors.border },
   logoutIcon: { fontSize: 18 },
-  logoutText: { color: '#f44336', fontWeight: 'bold', fontSize: 15 },
-  footer: { textAlign: 'center', color: '#ccc', fontSize: 12 },
+  logoutText: { color: colors.error, fontWeight: 'bold', fontSize: 15 },
+  footer: { textAlign: 'center', color: colors.textSecondary, fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20 },
-  modalInput: { borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', backgroundColor: '#fafafa', marginBottom: 12 },
+  modalCard: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 20 },
+  modalInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, marginBottom: 12 },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#eee', alignItems: 'center' },
-  cancelBtnText: { color: '#888', fontWeight: '600' },
-  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#6C63FF', alignItems: 'center' },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
+  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
+  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: 'bold' },
 });

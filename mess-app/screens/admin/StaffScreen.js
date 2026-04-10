@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl, TextInput, Modal } from 'react-native';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function StaffScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [staff, setStaff] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -144,39 +148,39 @@ export default function StaffScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   addBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  infoBox: { backgroundColor: '#EEF', margin: 12, borderRadius: 12, padding: 12 },
-  infoText: { fontSize: 12, color: '#6C63FF', lineHeight: 18 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 2 },
+  infoBox: { backgroundColor: colors.primaryLight, margin: 12, borderRadius: 12, padding: 12 },
+  infoText: { fontSize: 12, color: colors.primary, lineHeight: 18 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 2 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   avatarText: { fontSize: 20, fontWeight: 'bold', color: '#4CAF50' },
   info: { flex: 1 },
-  name: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  email: { fontSize: 12, color: '#888', marginTop: 2 },
-  date: { fontSize: 11, color: '#aaa', marginTop: 4 },
+  name: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  email: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  date: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
   staffBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   staffBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '600' },
   removeBtn: { padding: 8 },
   removeBtnText: { fontSize: 20 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: '#888', marginBottom: 20 },
-  addEmptyBtn: { backgroundColor: '#6C63FF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  emptyText: { fontSize: 16, color: colors.textSecondary, marginBottom: 20 },
+  addEmptyBtn: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   addEmptyBtnText: { color: '#fff', fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  modalSubtitle: { fontSize: 12, color: '#888', marginBottom: 20, lineHeight: 18 },
-  input: { borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', backgroundColor: '#fafafa', marginBottom: 12 },
+  modalCard: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  modalSubtitle: { fontSize: 12, color: colors.textSecondary, marginBottom: 20, lineHeight: 18 },
+  input: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, marginBottom: 12 },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#eee', alignItems: 'center' },
-  cancelBtnText: { color: '#888', fontWeight: '600' },
-  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#6C63FF', alignItems: 'center' },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
+  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
+  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: 'bold' },
 }); 
