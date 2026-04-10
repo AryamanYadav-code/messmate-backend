@@ -22,6 +22,7 @@ import AdminOrderHistoryScreen from './screens/admin/AdminOrderHistoryScreen';
 import SettingsScreen from './screens/student/SettingsScreen';
 import StudentsScreen from './screens/admin/StudentsScreen';
 import StaffScreen from './screens/admin/StaffScreen';
+import StudentOrderHistoryScreen from './screens/admin/StudentOrderHistoryScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
@@ -73,6 +74,7 @@ function MainNav() {
         <Stack.Screen name="Students" component={StudentsScreen} />
         <Stack.Screen name="Staff" component={StaffScreen} />
         <Stack.Screen name="AdminOrderHistory" component={AdminOrderHistoryScreen} />
+        <Stack.Screen name="StudentOrderHistory" component={StudentOrderHistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
