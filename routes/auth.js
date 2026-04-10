@@ -11,23 +11,29 @@ const axios = require('axios');
 // Send OTP
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail) return res.status(400).json({ error: 'Email is required' });
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) return res.status(400).json({ error: 'Invalid email address' });
+
   const allowedDomains = ['@srmist.edu.in', '@srmuniv.ac.in', '@test.com', '@mess.com', '@gmail.com'];
-  const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
+  const isAllowed = allowedDomains.some(domain => cleanEmail.endsWith(domain));
   if (!isAllowed) return res.status(400).json({ error: 'Email not allowed' });
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
   try {
-    await db.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+    await db.query('DELETE FROM otp_codes WHERE email = $1', [cleanEmail]);
     await db.query(
       'INSERT INTO otp_codes (email, otp, expires_at) VALUES ($1, $2, $3)',
-      [email, otp, expires_at]
+      [cleanEmail, otp, expires_at]
     );
 
   await axios.post('https://api.brevo.com/v3/smtp/email', {
   sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
-  to: [{ email: email }],
+  to: [{ email: cleanEmail }],
   subject: 'Your MessMate Verification Code',
   htmlContent: `
     <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
@@ -55,10 +61,16 @@ router.post('/send-otp', async (req, res) => {
 // Verify OTP and Register
 router.post('/register', async (req, res) => {
   const { name, email, password, otp } = req.body;
+  const cleanName = (name || '').trim();
+  const cleanEmail = (email || '').trim().toLowerCase();
+
+  if (!cleanName || !cleanEmail || !password || !otp)
+    return res.status(400).json({ error: 'Name, email, password and OTP are required' });
+
   try {
     const otpResult = await db.query(
       'SELECT * FROM otp_codes WHERE email = $1 AND otp = $2',
-      [email, otp]
+      [cleanEmail, otp]
     );
 
     if (otpResult.rows.length === 0)
@@ -71,10 +83,10 @@ router.post('/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const result = await db.query(
       'INSERT INTO users (name, email, password_hash, role, is_verified) VALUES ($1,$2,$3,$4,true) RETURNING user_id',
-      [name, email, hash, 'student']
+      [cleanName, cleanEmail, hash, 'student']
     );
 
-    await db.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+    await db.query('DELETE FROM otp_codes WHERE email = $1', [cleanEmail]);
 
     res.json({ message: 'Registered successfully!', userId: result.rows[0].user_id });
   } catch (err) {
@@ -85,12 +97,17 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail || !password) return res.status(400).json({ error: 'Email and password are required' });
   try {
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
     if (result.rows.length === 0) return res.status(400).json({ error: 'User not found' });
     const user = result.rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ error: 'Wrong password' });
+    if (!user.is_verified) {
+    return res.status(400).json({ error: 'Account not verified. Please check your email for verification link.' });
+    }
     const token = jwt.sign(
       { userId: user.user_id, role: user.role },
       process.env.JWT_SECRET,
