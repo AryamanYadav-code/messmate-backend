@@ -1,17 +1,19 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { Text, TextInput } from 'react-native';
 import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
 import AddItemScreen from './screens/admin/AddItemScreen';
 import WalletScreen from './screens/student/WalletScreen';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import api from './services/api';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -62,8 +64,14 @@ async function registerForPushNotifications() {
     });
   }
 
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ||
+    Constants?.easConfig?.projectId;
+
+  if (!projectId) return null;
+
   const token = await Notifications.getExpoPushTokenAsync({
-    projectId: 'c86ada28-8c1d-4f4d-8568-217a24f26759'
+    projectId,
   });
   
   return token.data;
@@ -73,23 +81,63 @@ const Stack = createNativeStackNavigator();
 function MainNav() {
   const [initialRoute, setInitialRoute] = useState(null);
   const { isDark } = useTheme();
+  const notificationListener = useRef(null);
+  const responseListener = useRef(null);
 
-  useEffect(() => { checkLogin(); }, []);
+  useEffect(() => {
+    checkLogin();
+
+    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+      // Listener keeps notification subscription active while app is in foreground.
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+      // Listener can be extended for deep-link navigation on notification tap.
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, []);
+
+  const savePushToken = async (userId) => {
+    try {
+      if (!userId) return;
+
+      const notificationsEnabled = await AsyncStorage.getItem('notifications');
+      if (notificationsEnabled === 'false') return;
+
+      const pushToken = await registerForPushNotifications();
+      if (!pushToken) return;
+
+      await api.post('/auth/save-token', {
+        user_id: Number(userId),
+        push_token: pushToken,
+      });
+    } catch (error) {
+      console.log('Failed to save push token:', error?.message || error);
+    }
+  };
 
   const checkLogin = async () => {
     const token = await AsyncStorage.getItem('token');
     const role = await AsyncStorage.getItem('role');
     const userId = await AsyncStorage.getItem('user_id');
-  if (!token) {
-    setInitialRoute('Login');
-  } else if (role === 'admin' || role === 'superadmin') {
-    setInitialRoute('AdminDash');
-    savePushToken(userId);
-  } else {
-    setInitialRoute('Home');
-    savePushToken(userId);
-  }
-};
+    if (!token) {
+      setInitialRoute('Login');
+    } else if (role === 'admin' || role === 'superadmin') {
+      setInitialRoute('AdminDash');
+      savePushToken(userId);
+    } else {
+      setInitialRoute('Home');
+      savePushToken(userId);
+    }
+  };
   
 
   if (!initialRoute) {
