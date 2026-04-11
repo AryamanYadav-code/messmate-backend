@@ -64,6 +64,14 @@ function MainNav() {
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification Received in Foreground:', notification.request.content.title);
+      
+      // SUPER LOG: Show raw data if anything is received
+      Alert.alert(
+        'DEBUG: RAW RECEIVED',
+        JSON.stringify(notification.request.content, null, 2),
+        [{ text: 'OK' }]
+      );
+
       // Force a manual alert popup because sometimes the OS heads-up doesn't show in foreground
       Alert.alert(
         notification.request.content.title || 'Notification',
