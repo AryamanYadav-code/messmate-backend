@@ -78,7 +78,10 @@ export default function SettingsScreen({ navigation }) {
     try {
       const result = await savePushToken(userId);
       if (result.ok) {
-        Alert.alert('Success', 'Notification settings synced successfully! 🔔');
+        Alert.alert(
+          'Success', 
+          `Notification settings synced successfully! 🔔\n\nToken: ${result.token.substring(0, 15)}...${result.token.substring(result.token.length - 10)}`
+        );
       } else {
         Alert.alert('Notice', result.error || 'Could not sync notifications. Please ensure you have allowed notifications in your phone settings.');
       }

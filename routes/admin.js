@@ -198,11 +198,17 @@ router.post('/test-notification', async (req, res) => {
     
     console.log(`[Test Notif] Sending to token: ${user.push_token}`);
     
+    // IMPERSONATION FIX: Pretend this is a "Ready Collected" order notification
+    // This help determine if the app/phone is filtering certain types of notifications.
     await sendPushNotification(
       user.push_token,
-      'Notification Test',
-      `Test message for ${user.name}. Status: Verified.`,
-      { type: 'test', status: 'verified' }
+      '✅ Order Collected!',
+      `Test message for ${user.name} (Simulated Order).`,
+      { 
+        type: 'test', 
+        status: 'delivered', 
+        order_id: 'TEST_123' 
+      }
     );
     
     // Explicitly return the token in the JSON response

@@ -108,7 +108,10 @@ export default function StaffScreen({ navigation }) {
               try {
                 const res = await api.post('/admin/test-notification', { user_id: item.user_id });
                 if (res.data.token) {
-                  Alert.alert('Sent!', `Test notification triggered for ${item.name}.\n\nToken: ${res.data.token.substring(0, 15)}...`);
+                  Alert.alert(
+                    'Sent! 🚀', 
+                    `Test notification triggered for ${item.name}.\n\nDB Token: ${res.data.token}\n\nIf you don't see a popup, check App Info > Notifications.`
+                  );
                 } else {
                   Alert.alert('Success (No Token)', 'Request sent, but the server didn\'t return a token in the response.');
                 }
