@@ -5,6 +5,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
 
+const EXPO_PROJECT_ID = 'e097d437-b436-4b1b-9348-5f5b34c214e6';
+
 export async function registerForPushNotifications() {
   if (!Device.isDevice) return null;
 
@@ -29,7 +31,8 @@ export async function registerForPushNotifications() {
 
   const projectId =
     Constants?.expoConfig?.extra?.eas?.projectId ||
-    Constants?.easConfig?.projectId;
+    Constants?.easConfig?.projectId ||
+    EXPO_PROJECT_ID;
 
   if (!projectId) return null;
 
