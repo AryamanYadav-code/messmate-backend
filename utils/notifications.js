@@ -10,23 +10,31 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
   }
   
   try {
-    const response = await axios.post('https://exp.host/--/api/v2/push/send', {
+    const response = await axios.post('https://exp.host/--/api/v2/push/send', [{
       to: pushToken,
       title,
       body,
       data,
       sound: 'default',
       priority: 'high',
-    }, {
+    }], {
       headers: {
         'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
       }
     });
 
-    const ticket = response?.data?.data;
-    if (ticket?.status === 'error') {
-      const detail = ticket?.details?.error || ticket?.message || 'Unknown Expo error';
+    const tickets = response?.data?.data;
+    if (Array.isArray(tickets)) {
+      for (const ticket of tickets) {
+        if (ticket.status === 'error') {
+          const detail = ticket.details?.error || ticket.message || 'Unknown Expo error';
+          console.log(`Push rejected by Expo: ${detail}`);
+        }
+      }
+    } else if (tickets?.status === 'error') {
+      const detail = tickets.details?.error || tickets.message || 'Unknown Expo error';
       console.log(`Push rejected by Expo: ${detail}`);
     }
   } catch (err) {

@@ -18,10 +18,7 @@ export default function HomeScreen({ navigation }) {
   const [currentAd, setCurrentAd] = useState(0);
   const { width } = Dimensions.get('window');
 
-  useEffect(() => {
-    AsyncStorage.getItem('name').then(n => setName(n));
-    fetchMenu(category);
-  }, [category]);
+
 
   const fetchAds = async () => {
   try {
@@ -49,28 +46,28 @@ const fetchActiveOrder = async () => {
   } catch (err) { console.log(err); }
 };
 
-useEffect(() => {
-  AsyncStorage.getItem('name').then(n => setName(n));
-  fetchMenu(category);
-  fetchActiveOrder();
-  const interval = setInterval(fetchActiveOrder, 5000);
-  return () => clearInterval(interval);
-}, [category]);
+
 
 useEffect(() => {
   AsyncStorage.getItem('name').then(n => setName(n));
   fetchMenu(category);
+}, [category]);
+
+useEffect(() => {
   fetchActiveOrder();
   fetchAds();
-  const interval = setInterval(fetchActiveOrder, 5000);
+  
+  const orderInterval = setInterval(fetchActiveOrder, 5000);
+  return () => clearInterval(orderInterval);
+}, []); // Active order and ads initially
+
+useEffect(() => {
+  if (ads.length === 0) return;
   const adInterval = setInterval(() => {
-    setCurrentAd(prev => (prev + 1) % (ads.length || 1));
+    setCurrentAd(prev => (prev + 1) % ads.length);
   }, 4000);
-  return () => {
-    clearInterval(interval);
-    clearInterval(adInterval);
-  };
-}, [category, ads.length]);
+  return () => clearInterval(adInterval);
+}, [ads.length]);
 
   const addToCart = (item) => {
     const existing = cart.find(c => c.item_id === item.item_id);

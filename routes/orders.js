@@ -53,7 +53,7 @@ router.get('/admin/history', async (req, res) => {
     const result = await db.query(
       `SELECT o.*, u.name, u.email FROM orders o
        JOIN users u ON o.user_id = u.user_id
-       WHERE o.status IN ('delivered', 'cancelled')
+       WHERE o.status IN ('delivered', 'cancelled', 'rejected')
        ORDER BY o.created_at DESC`
     );
     res.json(result.rows);
