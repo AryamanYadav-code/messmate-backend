@@ -1,14 +1,13 @@
 import * as Notifications from 'expo-notifications';
-import { Text, TextInput } from 'react-native';
-import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
-import MenuManagerScreen from './screens/admin/MenuManagerScreen';
-import AddItemScreen from './screens/admin/AddItemScreen';
-import WalletScreen from './screens/student/WalletScreen';
+import { Text, TextInput, View, ActivityIndicator, Alert, Platform } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
+import MenuManagerScreen from './screens/admin/MenuManagerScreen';
+import AddItemScreen from './screens/admin/AddItemScreen';
+import WalletScreen from './screens/student/WalletScreen';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
@@ -49,6 +48,18 @@ function MainNav() {
   const responseListener = useRef(null);
 
   useEffect(() => {
+    async function setupNotifications() {
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('orders', {
+          name: 'Order Notifications',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+    }
+
+    setupNotifications();
     checkLogin();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
