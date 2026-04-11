@@ -26,7 +26,8 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
       }
     });
 
-    console.log('Expo API Response:', JSON.stringify(response.data, null, 2));
+    console.log('[Expo API Request Payload]:', JSON.stringify([{ to: pushToken, title, body, data, channelId: 'orders' }], null, 2));
+    console.log('[Expo API Response]:', JSON.stringify(response.data, null, 2));
 
     const tickets = response?.data?.data;
     if (Array.isArray(tickets)) {

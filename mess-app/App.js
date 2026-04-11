@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Alert } from 'react-native';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
@@ -36,6 +36,7 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    priority: Notifications.AndroidNotificationPriority.MAX, // Ensure high priority for foreground
   }),
 });
 
@@ -50,8 +51,14 @@ function MainNav() {
   useEffect(() => {
     checkLogin();
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-      // Listener keeps notification subscription active while app is in foreground.
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification Received in Foreground:', notification.request.content.title);
+      // Force a manual alert popup because sometimes the OS heads-up doesn't show in foreground
+      Alert.alert(
+        notification.request.content.title || 'Notification',
+        notification.request.content.body || '',
+        [{ text: 'OK' }]
+      );
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {

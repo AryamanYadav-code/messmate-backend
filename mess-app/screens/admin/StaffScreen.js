@@ -105,10 +105,15 @@ export default function StaffScreen({ navigation }) {
             </View>
             <TouchableOpacity style={styles.testBtn} onPress={async () => {
               try {
-                await api.post('/admin/test-notification', { user_id: item.user_id });
-                Alert.alert('Sent!', 'Test notification triggered.');
+                const res = await api.post('/admin/test-notification', { user_id: item.user_id });
+                if (res.data.token) {
+                  Alert.alert('Sent!', `Test notification triggered for ${item.name}.\n\nToken: ${res.data.token.substring(0, 15)}...`);
+                } else {
+                  Alert.alert('Success (No Token)', 'Request sent, but the server didn\'t return a token in the response.');
+                }
               } catch (err) {
-                Alert.alert('Failed', err.response?.data?.error || 'Could not send test notification');
+                const errorMsg = err.response?.data?.error || 'Could not send test notification';
+                Alert.alert('Failed', `${errorMsg}\n\nMake sure the staff member has clicked "Sync Push Token" in Settings.`);
               }
             }}>
               <Text style={styles.testBtnText}>🔔</Text>

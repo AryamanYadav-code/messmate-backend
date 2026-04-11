@@ -179,22 +179,42 @@ router.post('/test-notification', async (req, res) => {
   const { user_id } = req.body;
   const { sendPushNotification } = require('../utils/notifications');
   
+  console.log(`[Test Notif] Request for user_id: ${user_id}`);
+  
   try {
-    const result = await db.query('SELECT push_token, name FROM users WHERE user_id = $1', [user_id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const result = await db.query('SELECT push_token, name, email FROM users WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) {
+      console.log(`[Test Notif] User ${user_id} not found`);
+      return res.status(404).json({ error: 'User not found' });
+    }
     
     const user = result.rows[0];
-    if (!user.push_token) return res.status(400).json({ error: 'No push token for this user' });
+    console.log(`[Test Notif] Target: ${user.name} (${user.email})`);
+    
+    if (!user.push_token) {
+      console.log(`[Test Notif] FAILED: No push token registered for ${user.name}`);
+      return res.status(400).json({ error: 'No push token for this user' });
+    }
+    
+    console.log(`[Test Notif] Sending to token: ${user.push_token}`);
     
     await sendPushNotification(
       user.push_token,
       '🧪 Test Notification',
-      `Hello ${user.name}! If you see this, your push notifications are working.`,
-      { type: 'test' }
+      `Hello ${user.name}! Your push notifications are verified correctly.`,
+      { type: 'test', timestamp: new Date().toISOString() }
     );
     
-    res.json({ message: 'Test notification sent!' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    // Explicitly return the token in the JSON response
+    return res.json({ 
+      message: 'Test notification sent!', 
+      token: user.push_token,
+      target: user.name 
+    });
+  } catch (err) { 
+    console.error(`[Test Notif] FATAL Error: ${err.message}`);
+    res.status(500).json({ error: 'Internal Server Error during notification' }); 
+  }
 });
 
 // Remove staff
