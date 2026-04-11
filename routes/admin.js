@@ -205,10 +205,4 @@ router.delete('/staff/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// View push notification logs
-router.get('/push-logs', (req, res) => {
-  const { lastPushLog } = require('../utils/notifications');
-  res.json(lastPushLog());
-});
-
 module.exports = router;
