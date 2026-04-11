@@ -23,7 +23,7 @@ router.get('/stats', async (req, res) => {
 router.get('/students', async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, email, wallet_balance, is_verified, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      'SELECT user_id, name, email, wallet_balance, is_verified, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
       ['student']
     );
     res.json(result.rows);
@@ -42,7 +42,7 @@ router.delete('/students/:id', async (req, res) => {
 router.get('/staff', async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, email, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      'SELECT user_id, name, email, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
       ['admin']
     );
     res.json(result.rows);
