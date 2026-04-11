@@ -1,3 +1,6 @@
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 import { Text, TextInput } from 'react-native';
 import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
@@ -29,7 +32,42 @@ Text.defaultProps.allowFontScaling = false;
 
 TextInput.defaultProps = TextInput.defaultProps || {};
 TextInput.defaultProps.allowFontScaling = false;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
+async function registerForPushNotifications() {
+  if (!Device.isDevice) return null;
+  
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  
+  if (finalStatus !== 'granted') return null;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#6C63FF',
+    });
+  }
+
+  const token = await Notifications.getExpoPushTokenAsync({
+    projectId: 'c86ada28-8c1d-4f4d-8568-217a24f26759'
+  });
+  
+  return token.data;
+}
 const Stack = createNativeStackNavigator();
 
 function MainNav() {
@@ -41,10 +79,18 @@ function MainNav() {
   const checkLogin = async () => {
     const token = await AsyncStorage.getItem('token');
     const role = await AsyncStorage.getItem('role');
-    if (!token) setInitialRoute('Login');
-    else if (role === 'admin' || role === 'superadmin') setInitialRoute('AdminDash');
-    else setInitialRoute('Home');
-  };
+    const userId = await AsyncStorage.getItem('user_id');
+  if (!token) {
+    setInitialRoute('Login');
+  } else if (role === 'admin' || role === 'superadmin') {
+    setInitialRoute('AdminDash');
+    savePushToken(userId);
+  } else {
+    setInitialRoute('Home');
+    savePushToken(userId);
+  }
+};
+  
 
   if (!initialRoute) {
     return (

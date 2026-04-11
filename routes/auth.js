@@ -135,4 +135,12 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
+router.post('/save-token', async (req, res) => {
+  const { user_id, push_token } = req.body;
+  try {
+    await db.query('UPDATE users SET push_token = $1 WHERE user_id = $2', [push_token, user_id]);
+    res.json({ message: 'Token saved!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

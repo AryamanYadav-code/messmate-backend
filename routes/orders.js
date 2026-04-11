@@ -1,3 +1,4 @@
+const { sendPushNotification } = require('../utils/notifications');
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
@@ -70,6 +71,35 @@ router.put('/:order_id/status', async (req, res) => {
   const { status } = req.body;
   try {
     await db.query('UPDATE orders SET status = $1 WHERE order_id = $2', [status, req.params.order_id]);
+    
+    // Get user push token
+    const orderResult = await db.query(
+      `SELECT o.*, u.push_token, u.name FROM orders o 
+       JOIN users u ON o.user_id = u.user_id 
+       WHERE o.order_id = $1`,
+      [req.params.order_id]
+    );
+    
+    const order = orderResult.rows[0];
+    
+    // Send notification based on status
+    const messages = {
+      approved: { title: '✅ Order Approved!', body: 'Your order has been approved and will be prepared soon.' },
+      preparing: { title: '👨‍🍳 Order Being Prepared!', body: 'Your order is now being prepared. Almost there!' },
+      ready: { title: '🎉 Order Ready!', body: 'Your order is ready for pickup! Show your pickup code at the counter.' },
+      delivered: { title: '✅ Order Collected!', body: 'Your order has been collected. Enjoy your meal!' },
+      rejected: { title: '❌ Order Rejected', body: 'Your order was rejected. Please contact the mess staff.' }
+    };
+
+    if (messages[status] && order?.push_token) {
+      await sendPushNotification(
+        order.push_token,
+        messages[status].title,
+        messages[status].body,
+        { order_id: req.params.order_id, status }
+      );
+    }
+
     res.json({ message: 'Status updated!', status });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
