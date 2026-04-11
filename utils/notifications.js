@@ -1,6 +1,9 @@
 const axios = require('axios');
 
+let lastPushLog = { status: 'No notifications sent yet', time: null, data: null };
+
 async function sendPushNotification(pushToken, title, body, data = {}) {
+  lastPushLog = { status: 'Sending...', time: new Date().toISOString(), token: pushToken };
   if (!pushToken) return;
 
   const isExpoToken = /^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/.test(pushToken);
@@ -26,6 +29,8 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
     });
 
     console.log('Expo API Response:', JSON.stringify(response.data, null, 2));
+    lastPushLog.status = 'Expo Accepted';
+    lastPushLog.data = response.data;
 
     const tickets = response?.data?.data;
     if (Array.isArray(tickets)) {
@@ -40,9 +45,10 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
       console.log(`Push rejected by Expo: ${detail}`);
     }
   } catch (err) {
-    const expoError = err?.response?.data?.errors?.[0]?.message;
-    console.log('Push notification error:', expoError || err.message);
+    console.log('Error sending push notification:', err.response?.data || err.message);
+    lastPushLog.status = 'Error';
+    lastPushLog.error = err.response?.data || err.message;
   }
 }
 
-module.exports = { sendPushNotification }; 
+module.exports = { sendPushNotification, lastPushLog: () => lastPushLog };
