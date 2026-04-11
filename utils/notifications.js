@@ -25,6 +25,8 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
       }
     });
 
+    console.log('Expo API Response:', JSON.stringify(response.data, null, 2));
+
     const tickets = response?.data?.data;
     if (Array.isArray(tickets)) {
       for (const ticket of tickets) {

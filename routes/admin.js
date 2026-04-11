@@ -174,6 +174,29 @@ router.get('/verify-staff', async (req, res) => {
   }
 });
 
+// Send test notification
+router.post('/test-notification', async (req, res) => {
+  const { user_id } = req.body;
+  const { sendPushNotification } = require('../utils/notifications');
+  
+  try {
+    const result = await db.query('SELECT push_token, name FROM users WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const user = result.rows[0];
+    if (!user.push_token) return res.status(400).json({ error: 'No push token for this user' });
+    
+    await sendPushNotification(
+      user.push_token,
+      '🧪 Test Notification',
+      `Hello ${user.name}! If you see this, your push notifications are working.`,
+      { type: 'test' }
+    );
+    
+    res.json({ message: 'Test notification sent!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Remove staff
 router.delete('/staff/:id', async (req, res) => {
   try {

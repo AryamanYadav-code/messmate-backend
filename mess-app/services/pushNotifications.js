@@ -60,7 +60,12 @@ export async function savePushToken(userId) {
     const notificationsEnabled = await AsyncStorage.getItem('notifications');
     if (notificationsEnabled === 'false') return;
 
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('Existing notification status:', existingStatus);
+
     const pushToken = await registerForPushNotifications();
+    console.log('Generated push token:', pushToken);
+
     if (!pushToken) {
       throw new Error('Push token not generated. Check app notification permission and device support.');
     }

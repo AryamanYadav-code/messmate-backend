@@ -103,6 +103,16 @@ export default function StaffScreen({ navigation }) {
             <View style={styles.staffBadge}>
               <Text style={styles.staffBadgeText}>Staff</Text>
             </View>
+            <TouchableOpacity style={styles.testBtn} onPress={async () => {
+              try {
+                await api.post('/admin/test-notification', { user_id: item.user_id });
+                Alert.alert('Sent!', 'Test notification triggered.');
+              } catch (err) {
+                Alert.alert('Failed', err.response?.data?.error || 'Could not send test notification');
+              }
+            }}>
+              <Text style={styles.testBtnText}>🔔</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.removeBtn} onPress={() => removeStaff(item.user_id, item.name)}>
               <Text style={styles.removeBtnText}>🗑</Text>
             </TouchableOpacity>
@@ -172,6 +182,8 @@ const getStyles = (colors) => StyleSheet.create({
   date: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
   staffBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   staffBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '600' },
+  testBtn: { padding: 8, marginRight: 4 },
+  testBtnText: { fontSize: 20 },
   removeBtn: { padding: 8 },
   removeBtnText: { fontSize: 20 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
