@@ -38,7 +38,10 @@ export default function LoginScreen({ navigation }) {
     await AsyncStorage.setItem('name', res.data.name);
     await AsyncStorage.setItem('user_id', res.data.userId.toString());
     await AsyncStorage.setItem('email', email);
-    await savePushToken(res.data.userId);
+    const pushSetup = await savePushToken(res.data.userId);
+    if (pushSetup?.ok === false) {
+      Alert.alert('Notification Setup', pushSetup.error || 'Could not register push notifications.');
+    }
 
     if (res.data.role === 'admin' || res.data.role === 'superadmin') {
       navigation.replace('AdminDash');

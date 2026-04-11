@@ -44,17 +44,28 @@ export async function savePushToken(userId) {
   try {
     if (!userId) return;
 
+    const parsedUserId = Number(userId);
+    if (Number.isNaN(parsedUserId)) {
+      throw new Error('Invalid user id for push token save');
+    }
+
     const notificationsEnabled = await AsyncStorage.getItem('notifications');
     if (notificationsEnabled === 'false') return;
 
     const pushToken = await registerForPushNotifications();
-    if (!pushToken) return;
+    if (!pushToken) {
+      throw new Error('Push token not generated. Check app notification permission and device support.');
+    }
 
-    await api.post('/auth/save-token', {
-      user_id: Number(userId),
+    const response = await api.post('/auth/save-token', {
+      user_id: parsedUserId,
       push_token: pushToken,
     });
+
+    return { ok: true, token: pushToken, response: response.data };
   } catch (error) {
-    console.log('Failed to save push token:', error?.message || error);
+    const message = error?.response?.data?.error || error?.message || 'Unknown push token save error';
+    console.log('Failed to save push token:', message);
+    return { ok: false, error: message };
   }
 }

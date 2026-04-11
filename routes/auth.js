@@ -138,8 +138,25 @@ router.post('/change-password', async (req, res) => {
 router.post('/save-token', async (req, res) => {
   const { user_id, push_token } = req.body;
   try {
-    await db.query('UPDATE users SET push_token = $1 WHERE user_id = $2', [push_token, user_id]);
-    res.json({ message: 'Token saved!' });
+    if (!user_id || !push_token) {
+      return res.status(400).json({ error: 'user_id and push_token are required' });
+    }
+
+    const isExpoToken = /^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/.test(push_token);
+    if (!isExpoToken) {
+      return res.status(400).json({ error: 'Invalid Expo push token format' });
+    }
+
+    const result = await db.query(
+      'UPDATE users SET push_token = $1 WHERE user_id = $2 RETURNING user_id',
+      [push_token, user_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found for push token save' });
+    }
+
+    res.json({ message: 'Token saved!', userId: result.rows[0].user_id });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
