@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert, Switch, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert, Switch, Modal, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import { savePushToken } from '../../services/pushNotifications';
 
 export default function SettingsScreen({ navigation }) {
   const { colors, isDark, changeTheme } = useTheme();
@@ -19,6 +20,7 @@ export default function SettingsScreen({ navigation }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [syncingNotifs, setSyncingNotifs] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -69,6 +71,22 @@ export default function SettingsScreen({ navigation }) {
   const toggleNotifications = async (val) => {
     setNotifications(val);
     await AsyncStorage.setItem('notifications', val.toString());
+  };
+
+  const syncNotifs = async () => {
+    setSyncingNotifs(true);
+    try {
+      const result = await savePushToken(userId);
+      if (result.ok) {
+        Alert.alert('Success', 'Notification settings synced successfully! 🔔');
+      } else {
+        Alert.alert('Notice', result.error || 'Could not sync notifications. Please ensure you have allowed notifications in your phone settings.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to sync notifications');
+    } finally {
+      setSyncingNotifs(false);
+    }
   };
 
   const logout = async () => {
@@ -191,6 +209,27 @@ export default function SettingsScreen({ navigation }) {
               thumbColor="#fff"
             />
           </View>
+
+          <View style={styles.divider}/>
+
+          <TouchableOpacity 
+            style={styles.settingRow} 
+            onPress={syncNotifs}
+            disabled={syncingNotifs}
+          >
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🔄</Text>
+              <View>
+                <Text style={styles.settingLabel}>Sync Push Token</Text>
+                <Text style={styles.settingValue}>Fix if not receiving alerts</Text>
+              </View>
+            </View>
+            {syncingNotifs ? (
+              <ActivityIndicator size="small" color="#6C63FF" />
+            ) : (
+              <Text style={styles.arrow}>›</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* App Info Section */}

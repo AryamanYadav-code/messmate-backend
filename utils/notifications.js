@@ -17,6 +17,7 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
       data,
       sound: 'default',
       priority: 'high',
+      channelId: 'orders',
     }], {
       headers: {
         'Accept': 'application/json',
