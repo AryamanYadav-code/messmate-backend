@@ -36,8 +36,16 @@ export async function registerForPushNotifications() {
 
   if (!projectId) return null;
 
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
-  return token.data;
+  try {
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    return token.data;
+  } catch (error) {
+    const message = error?.message || '';
+    if (message.includes('Default FirebaseApp is not initialized')) {
+      throw new Error('Firebase Android config missing. Add google-services.json and rebuild APK.');
+    }
+    throw error;
+  }
 }
 
 export async function savePushToken(userId) {
