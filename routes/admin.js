@@ -200,9 +200,9 @@ router.post('/test-notification', async (req, res) => {
     
     await sendPushNotification(
       user.push_token,
-      '🧪 Test Notification',
-      `Hello ${user.name}! Your push notifications are verified correctly.`,
-      { type: 'test', timestamp: new Date().toISOString() }
+      'Notification Test',
+      `Test message for ${user.name}. Status: Verified.`,
+      { type: 'test', status: 'verified' }
     );
     
     // Explicitly return the token in the JSON response

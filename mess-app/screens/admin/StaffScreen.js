@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl, TextInput, Modal } from 'react-native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -117,6 +118,24 @@ export default function StaffScreen({ navigation }) {
               }
             }}>
               <Text style={styles.testBtnText}>🔔</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.testBtn, { backgroundColor: '#4CAF50', marginLeft: 10 }]} onPress={async () => {
+              try {
+                await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "🏠 Local Test Success!",
+                    body: "If you see this, your phone's internal notification system is working.",
+                    data: { type: 'local-test' },
+                  },
+                  trigger: null, // send immediately
+                });
+                Alert.alert('Local Triggered', 'Sent local notification request to OS.');
+              } catch (err) {
+                Alert.alert('Local Failed', err.message);
+              }
+            }}>
+              <Text style={styles.testBtnText}>📱</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.removeBtn} onPress={() => removeStaff(item.user_id, item.name)}>
               <Text style={styles.removeBtnText}>🗑</Text>
