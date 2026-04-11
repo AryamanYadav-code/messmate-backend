@@ -1,7 +1,4 @@
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 import { Text, TextInput } from 'react-native';
 import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
@@ -13,7 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import api from './services/api';
+import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -42,40 +39,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function registerForPushNotifications() {
-  if (!Device.isDevice) return null;
-  
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  
-  if (finalStatus !== 'granted') return null;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6C63FF',
-    });
-  }
-
-  const projectId =
-    Constants?.expoConfig?.extra?.eas?.projectId ||
-    Constants?.easConfig?.projectId;
-
-  if (!projectId) return null;
-
-  const token = await Notifications.getExpoPushTokenAsync({
-    projectId,
-  });
-  
-  return token.data;
-}
 const Stack = createNativeStackNavigator();
 
 function MainNav() {
@@ -104,25 +67,6 @@ function MainNav() {
       }
     };
   }, []);
-
-  const savePushToken = async (userId) => {
-    try {
-      if (!userId) return;
-
-      const notificationsEnabled = await AsyncStorage.getItem('notifications');
-      if (notificationsEnabled === 'false') return;
-
-      const pushToken = await registerForPushNotifications();
-      if (!pushToken) return;
-
-      await api.post('/auth/save-token', {
-        user_id: Number(userId),
-        push_token: pushToken,
-      });
-    } catch (error) {
-      console.log('Failed to save push token:', error?.message || error);
-    }
-  };
 
   const checkLogin = async () => {
     const token = await AsyncStorage.getItem('token');
