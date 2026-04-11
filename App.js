@@ -1,14 +1,16 @@
+import * as Notifications from 'expo-notifications';
 import { Text, TextInput } from 'react-native';
 import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
 import AddItemScreen from './screens/admin/AddItemScreen';
 import WalletScreen from './screens/student/WalletScreen';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
@@ -22,28 +24,65 @@ import AdminOrderHistoryScreen from './screens/admin/AdminOrderHistoryScreen';
 import SettingsScreen from './screens/student/SettingsScreen';
 import StudentsScreen from './screens/admin/StudentsScreen';
 import StaffScreen from './screens/admin/StaffScreen';
+import StudentOrderHistoryScreen from './screens/admin/StudentOrderHistoryScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
 
 TextInput.defaultProps = TextInput.defaultProps || {};
 TextInput.defaultProps.allowFontScaling = false;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const Stack = createNativeStackNavigator();
 
 function MainNav() {
   const [initialRoute, setInitialRoute] = useState(null);
   const { isDark } = useTheme();
+  const notificationListener = useRef(null);
+  const responseListener = useRef(null);
 
-  useEffect(() => { checkLogin(); }, []);
+  useEffect(() => {
+    checkLogin();
+
+    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+      // Listener keeps notification subscription active while app is in foreground.
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+      // Listener can be extended for deep-link navigation on notification tap.
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, []);
 
   const checkLogin = async () => {
     const token = await AsyncStorage.getItem('token');
     const role = await AsyncStorage.getItem('role');
-    if (!token) setInitialRoute('Login');
-    else if (role === 'admin' || role === 'superadmin') setInitialRoute('AdminDash');
-    else setInitialRoute('Home');
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!token) {
+      setInitialRoute('Login');
+    } else if (role === 'admin' || role === 'superadmin') {
+      setInitialRoute('AdminDash');
+      savePushToken(userId);
+    } else {
+      setInitialRoute('Home');
+      savePushToken(userId);
+    }
   };
+  
 
   if (!initialRoute) {
     return (
@@ -73,6 +112,7 @@ function MainNav() {
         <Stack.Screen name="Students" component={StudentsScreen} />
         <Stack.Screen name="Staff" component={StaffScreen} />
         <Stack.Screen name="AdminOrderHistory" component={AdminOrderHistoryScreen} />
+        <Stack.Screen name="StudentOrderHistory" component={StudentOrderHistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

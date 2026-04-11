@@ -31,14 +31,20 @@ export default function StaffScreen({ navigation }) {
   };
 
   const addStaff = async () => {
-    if (!name || !email || !password)
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password)
       return Alert.alert('Error', 'Please fill all fields');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail))
+      return Alert.alert('Error', 'Please enter a valid email address');
     if (password.length < 6)
       return Alert.alert('Error', 'Password must be at least 6 characters');
     setLoading(true);
     try {
-      await api.post('/admin/staff', { name, email, password });
-      Alert.alert('Success!', `${name} has been registered as staff!`);
+      await api.post('/admin/staff', { name: cleanName, email: cleanEmail, password });
+      Alert.alert('Staff Added! 📧', `Verification email sent to ${cleanEmail}. They need to verify before logging in.`);
       setShowModal(false);
       setName(''); setEmail(''); setPassword('');
       fetchStaff();
@@ -79,7 +85,7 @@ export default function StaffScreen({ navigation }) {
 
       <FlatList
         data={staff}
-        keyExtractor={item => item.user_id.toString()}
+        keyExtractor={item => String(item.user_id ?? item.id ?? item.email)}
         contentContainerStyle={{ padding: 12 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
         renderItem={({ item }) => (

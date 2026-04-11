@@ -53,7 +53,10 @@ export default function StudentsScreen({ navigation }) {
         contentContainerStyle={{ padding: 12 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity 
+            style={styles.card}
+            onPress={() => navigation.navigate('StudentOrderHistory', { user_id: item.user_id, name: item.name })}
+          >
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
             </View>
@@ -77,7 +80,7 @@ export default function StudentsScreen({ navigation }) {
             <TouchableOpacity style={styles.removeBtn} onPress={() => removeStudent(item.user_id, item.name)}>
               <Text style={styles.removeBtnText}>🗑</Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

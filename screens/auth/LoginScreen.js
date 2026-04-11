@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { savePushToken } from '../../services/pushNotifications';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function LoginScreen({ navigation }) {
@@ -37,6 +38,10 @@ export default function LoginScreen({ navigation }) {
     await AsyncStorage.setItem('name', res.data.name);
     await AsyncStorage.setItem('user_id', res.data.userId.toString());
     await AsyncStorage.setItem('email', email);
+    const pushSetup = await savePushToken(res.data.userId);
+    if (pushSetup?.ok === false) {
+      Alert.alert('Notification Setup', pushSetup.error || 'Could not register push notifications.');
+    }
 
     if (res.data.role === 'admin' || res.data.role === 'superadmin') {
       navigation.replace('AdminDash');
