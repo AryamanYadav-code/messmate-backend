@@ -26,7 +26,7 @@ export default function StudentsScreen({ navigation }) {
   };
 
   const removeStudent = (id, name) => {
-    Alert.alert('Remove Student', `Remove "${name}" from the app?`, [
+    Alert.alert('Remove Student', `Remove "${name}" and ALL their data permanently? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => {
         try {
@@ -35,6 +35,14 @@ export default function StudentsScreen({ navigation }) {
         } catch (err) { Alert.alert('Error', 'Could not remove student'); }
       }}
     ]);
+  };
+  const toggleUserStatus = async (user_id, current_status) => {
+    try {
+      await api.patch(`/admin/users/${user_id}/status`, { is_active: !current_status });
+      fetchStudents();
+    } catch (err) {
+      Alert.alert('Error', 'Could not update user status');
+    }
   };
 
   return (
@@ -61,7 +69,14 @@ export default function StudentsScreen({ navigation }) {
               <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
             </View>
             <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{item.name}</Text>
+                {item.is_active === false && (
+                  <View style={styles.inactiveBadge}>
+                    <Text style={styles.inactiveText}>Inactive</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.email}>{item.email}</Text>
               <View style={styles.metaRow}>
                 <View style={styles.balanceBadge}>
@@ -73,9 +88,19 @@ export default function StudentsScreen({ navigation }) {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.date}>
-                Joined {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </Text>
+              <View style={styles.actionRow}>
+                <Text style={styles.date}>
+                  Joined {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => toggleUserStatus(item.user_id, item.is_active)}
+                  style={[styles.statusToggle, { backgroundColor: item.is_active ? '#FFF3E0' : '#E8F5E9' }]}
+                >
+                  <Text style={[styles.statusToggleText, { color: item.is_active ? '#FF9800' : '#4CAF50' }]}>
+                    {item.is_active ? 'Deactivate' : 'Activate'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
             <TouchableOpacity style={styles.removeBtn} onPress={() => removeStudent(item.user_id, item.name)}>
               <Text style={styles.removeBtnText}>🗑</Text>
@@ -103,14 +128,20 @@ const getStyles = (colors) => StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   avatarText: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
   info: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  inactiveBadge: { backgroundColor: '#F5F5F5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, borderWidth: 1, borderColor: '#DDD' },
+  inactiveText: { fontSize: 9, color: '#999', fontWeight: 'bold', textTransform: 'uppercase' },
   email: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   metaRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
   balanceBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   balanceText: { fontSize: 11, color: colors.primary, fontWeight: '600' },
   verifiedBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   verifiedText: { fontSize: 11, fontWeight: '600' },
-  date: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  date: { fontSize: 11, color: colors.textSecondary },
+  statusToggle: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  statusToggleText: { fontSize: 11, fontWeight: 'bold' },
   removeBtn: { padding: 8 },
   removeBtnText: { fontSize: 20 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },

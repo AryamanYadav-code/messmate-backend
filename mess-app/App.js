@@ -62,15 +62,23 @@ function MainNav() {
     setupNotifications();
     checkLogin();
 
+    // Silent Push Token Sync on startup
+    const syncTokenOnStartup = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('user_id');
+        if (userId) {
+          console.log('[App Startup] Silent token sync for user:', userId);
+          await savePushToken(userId);
+        }
+      } catch (err) {
+        console.log('[App Startup] Silent sync failed:', err.message);
+      }
+    };
+    syncTokenOnStartup();
+
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      // Hide console.log for production if needed
       console.log('Notification Received in Foreground:', notification.request.content.title);
-      
-      // SUPER LOG: Show raw data if anything is received
-      Alert.alert(
-        'DEBUG: RAW RECEIVED',
-        JSON.stringify(notification.request.content, null, 2),
-        [{ text: 'OK' }]
-      );
 
       // Force a manual alert popup because sometimes the OS heads-up doesn't show in foreground
       Alert.alert(

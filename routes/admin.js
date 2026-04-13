@@ -1,9 +1,69 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../config/db');
-const bcrypt = require('bcryptjs');
-const axios = require('axios');
 const crypto = require('crypto');
+const auth = require('../middleware/auth');
+
+// Middleware to check if user is superadmin
+const isSuperAdmin = (req) => req.user.role === 'superadmin';
+
+// Middleware to verify superadmin role
+const verifySuperAdmin = (req, res, next) => {
+  if (!isSuperAdmin(req)) {
+    return res.status(403).json({ error: 'Access denied. Superadmin only.' });
+  }
+  next();
+};
+
+// --- PUBLIC ROUTES (No JWT required) ---
+
+// Verify staff email
+router.get('/verify-staff', async (req, res) => {
+  const { token, email } = req.query;
+  if (!token || !email) return res.status(400).send('Missing token or email');
+  try {
+    const result = await db.query(
+      'SELECT * FROM staff_tokens WHERE token = $1 AND email = $2 AND is_used = false',
+      [token, email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.send(`
+        <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h2 style="color: #f44336;">Invalid or Expired Link</h2>
+          <p>This verification link is invalid or has already been used.</p>
+        </body></html>
+      `);
+    }
+
+    const tokenRecord = result.rows[0];
+    if (new Date() > new Date(tokenRecord.expires_at)) {
+      return res.send(`
+        <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h2 style="color: #f44336;">Link Expired</h2>
+          <p>This verification link has expired. Please ask admin to resend.</p>
+        </body></html>
+      `);
+    }
+
+    // Verify the staff account
+    await db.query('UPDATE users SET is_verified = true WHERE email = $1', [email]);
+    await db.query('UPDATE staff_tokens SET is_used = true WHERE token = $1', [token]);
+
+    res.send(`
+      <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h2 style="color: #6C63FF;">Account Verified! ✅</h2>
+        <p>Your MessMate staff account has been verified successfully.</p>
+        <p>You can now login to the MessMate app with your credentials.</p>
+        <div style="margin-top: 20px; padding: 20px; background: #f0f0ff; border-radius: 10px;">
+          <p><strong>Email:</strong> ${email}</p>
+        </div>
+      </body></html>
+    `);
+  } catch (err) {
+    res.status(500).send('Something went wrong');
+  }
+});
+
+// --- PROTECTED ROUTES (JWT required) ---
+router.use(auth); 
 
 // Get dashboard stats
 router.get('/stats', async (req, res) => {
@@ -19,40 +79,49 @@ router.get('/stats', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get all students
-router.get('/students', async (req, res) => {
+// Get all students - Superadmin only
+router.get('/students', verifySuperAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, email, wallet_balance, is_verified, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      'SELECT user_id, name, email, wallet_balance, is_verified, is_active, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
       ['student']
     );
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Remove student
-router.delete('/students/:id', async (req, res) => {
+// Remove student - Superadmin only
+router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
     res.json({ message: 'Student removed!' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get all staff (sub-admins)
-router.get('/staff', async (req, res) => {
+// Get all staff (sub-admins) - Superadmin only
+router.get('/staff', verifySuperAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, email, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      'SELECT user_id, name, email, push_token, is_active, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
       ['admin']
     );
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Toggle user status (Deactivate/Activate) - Superadmin only
+router.patch('/users/:id/status', verifySuperAdmin, async (req, res) => {
+  const { is_active } = req.body;
+  try {
+    await db.query('UPDATE users SET is_active = $1 WHERE user_id = $2', [is_active, req.params.id]);
+    res.json({ message: `Account ${is_active ? 'activated' : 'deactivated'} successfully!` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 
-// Register staff with email verification
-router.post('/staff', async (req, res) => {
+
+// Register staff with email verification - Superadmin only
+router.post('/staff', verifySuperAdmin, async (req, res) => {
   const { name, email, password } = req.body;
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
@@ -126,54 +195,6 @@ router.post('/staff', async (req, res) => {
   }
 });
 
-// Verify staff email
-router.get('/verify-staff', async (req, res) => {
-  const { token, email } = req.query;
-  if (!token || !email) return res.status(400).send('Missing token or email');
-  try {
-    const result = await db.query(
-      'SELECT * FROM staff_tokens WHERE token = $1 AND email = $2 AND is_used = false',
-      [token, email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.send(`
-        <html><body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h2 style="color: #f44336;">Invalid or Expired Link</h2>
-          <p>This verification link is invalid or has already been used.</p>
-        </body></html>
-      `);
-    }
-
-    const tokenRecord = result.rows[0];
-    if (new Date() > new Date(tokenRecord.expires_at)) {
-      return res.send(`
-        <html><body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h2 style="color: #f44336;">Link Expired</h2>
-          <p>This verification link has expired. Please ask admin to resend.</p>
-        </body></html>
-      `);
-    }
-
-    // Verify the staff account
-    await db.query('UPDATE users SET is_verified = true WHERE email = $1', [email]);
-    await db.query('UPDATE staff_tokens SET is_used = true WHERE token = $1', [token]);
-
-    res.send(`
-      <html><body style="font-family: Arial; text-align: center; padding: 50px;">
-        <h2 style="color: #6C63FF;">Account Verified! ✅</h2>
-        <p>Your MessMate staff account has been verified successfully.</p>
-        <p>You can now login to the MessMate app with your credentials.</p>
-        <div style="margin-top: 20px; padding: 20px; background: #f0f0ff; border-radius: 10px;">
-          <p><strong>Email:</strong> ${email}</p>
-        </div>
-      </body></html>
-    `);
-  } catch (err) {
-    res.status(500).send('Something went wrong');
-  }
-});
-
 // Send test notification
 router.post('/test-notification', async (req, res) => {
   const { user_id } = req.body;
@@ -217,8 +238,8 @@ router.post('/test-notification', async (req, res) => {
   }
 });
 
-// Remove staff
-router.delete('/staff/:id', async (req, res) => {
+// Remove staff - Superadmin only
+router.delete('/staff/:id', verifySuperAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'admin']);
     res.json({ message: 'Staff removed!' });

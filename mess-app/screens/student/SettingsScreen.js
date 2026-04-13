@@ -78,10 +78,7 @@ export default function SettingsScreen({ navigation }) {
     try {
       const result = await savePushToken(userId);
       if (result.ok) {
-        Alert.alert(
-          'Success', 
-          `Notification settings synced successfully! 🔔\n\nToken: ${result.token.substring(0, 15)}...${result.token.substring(result.token.length - 10)}`
-        );
+        Alert.alert('Success', 'Push notifications synced successfully.');
       } else {
         Alert.alert('Notice', result.error || 'Could not sync notifications. Please ensure you have allowed notifications in your phone settings.');
       }
@@ -213,26 +210,6 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
 
-          <View style={styles.divider}/>
-
-          <TouchableOpacity 
-            style={styles.settingRow} 
-            onPress={syncNotifs}
-            disabled={syncingNotifs}
-          >
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔄</Text>
-              <View>
-                <Text style={styles.settingLabel}>Sync Push Token</Text>
-                <Text style={styles.settingValue}>Fix if not receiving alerts</Text>
-              </View>
-            </View>
-            {syncingNotifs ? (
-              <ActivityIndicator size="small" color="#6C63FF" />
-            ) : (
-              <Text style={styles.arrow}>›</Text>
-            )}
-          </TouchableOpacity>
         </View>
 
         {/* App Info Section */}

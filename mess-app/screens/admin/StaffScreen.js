@@ -55,7 +55,7 @@ export default function StaffScreen({ navigation }) {
   };
 
   const removeStaff = (id, name) => {
-    Alert.alert('Remove Staff', `Remove "${name}" from staff?`, [
+    Alert.alert('Remove Staff', `Remove "${name}" and ALL their data permanently? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => {
         try {
@@ -64,6 +64,15 @@ export default function StaffScreen({ navigation }) {
         } catch (err) { Alert.alert('Error', 'Could not remove staff'); }
       }}
     ]);
+  };
+
+  const toggleUserStatus = async (user_id, current_status) => {
+    try {
+      await api.patch(`/admin/users/${user_id}/status`, { is_active: !current_status });
+      fetchStaff();
+    } catch (err) {
+      Alert.alert('Error', 'Could not update user status');
+    }
   };
 
   return (
@@ -95,54 +104,36 @@ export default function StaffScreen({ navigation }) {
               <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
             </View>
             <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{item.name}</Text>
+                {item.is_active === false && (
+                  <View style={styles.inactiveBadge}>
+                    <Text style={styles.inactiveText}>Inactive</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.email}>{item.email}</Text>
               <Text style={styles.date}>
                 Added {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </Text>
+              <TouchableOpacity 
+                onPress={() => toggleUserStatus(item.user_id, item.is_active)}
+                style={[styles.statusToggle, { backgroundColor: item.is_active ? '#FFF3E0' : '#E8F5E9', marginTop: 6, alignSelf: 'flex-start' }]}
+              >
+                <Text style={[styles.statusToggleText, { color: item.is_active ? '#FF9800' : '#4CAF50' }]}>
+                  {item.is_active ? 'Deactivate' : 'Activate'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.staffBadge}>
-              <Text style={styles.staffBadgeText}>Staff</Text>
+            
+            <View style={styles.sideActions}>
+              <View style={styles.staffBadge}>
+                <Text style={styles.staffBadgeText}>Staff</Text>
+              </View>
+              <TouchableOpacity style={styles.removeBtn} onPress={() => removeStaff(item.user_id, item.name)}>
+                <Text style={styles.removeBtnText}>🗑</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.testBtn} onPress={async () => {
-              try {
-                const res = await api.post('/admin/test-notification', { user_id: item.user_id });
-                if (res.data.token) {
-                  Alert.alert(
-                    'Sent! 🚀', 
-                    `Test notification triggered for ${item.name}.\n\nDB Token: ${res.data.token}\n\nIf you don't see a popup, check App Info > Notifications.`
-                  );
-                } else {
-                  Alert.alert('Success (No Token)', 'Request sent, but the server didn\'t return a token in the response.');
-                }
-              } catch (err) {
-                const errorMsg = err.response?.data?.error || 'Could not send test notification';
-                Alert.alert('Failed', `${errorMsg}\n\nMake sure the staff member has clicked "Sync Push Token" in Settings.`);
-              }
-            }}>
-              <Text style={styles.testBtnText}>🔔</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.testBtn, { backgroundColor: '#4CAF50', marginLeft: 10 }]} onPress={async () => {
-              try {
-                await Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: "🏠 Local Test Success!",
-                    body: "If you see this, your phone's internal notification system is working.",
-                    data: { type: 'local-test' },
-                  },
-                  trigger: null, // send immediately
-                });
-                Alert.alert('Local Triggered', 'Sent local notification request to OS.');
-              } catch (err) {
-                Alert.alert('Local Failed', err.message);
-              }
-            }}>
-              <Text style={styles.testBtnText}>📱</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.removeBtn} onPress={() => removeStaff(item.user_id, item.name)}>
-              <Text style={styles.removeBtnText}>🗑</Text>
-            </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={
@@ -204,15 +195,19 @@ const getStyles = (colors) => StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   avatarText: { fontSize: 20, fontWeight: 'bold', color: '#4CAF50' },
   info: { flex: 1 },
-  name: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  email: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  date: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
-  staffBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  staffBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '600' },
-  testBtn: { padding: 8, marginRight: 4 },
-  testBtnText: { fontSize: 20 },
-  removeBtn: { padding: 8 },
-  removeBtnText: { fontSize: 20 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: 13, fontWeight: 'bold', color: colors.text },
+  inactiveBadge: { backgroundColor: '#F5F5F5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, borderWidth: 1, borderColor: '#DDD' },
+  inactiveText: { fontSize: 8, color: '#999', fontWeight: 'bold', textTransform: 'uppercase' },
+  email: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
+  date: { fontSize: 10, color: colors.textSecondary, marginTop: 3 },
+  statusToggle: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  statusToggleText: { fontSize: 10, fontWeight: 'bold' },
+  sideActions: { alignItems: 'flex-end', gap: 8 },
+  staffBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  staffBadgeText: { color: '#4CAF50', fontSize: 11, fontWeight: '600' },
+  removeBtn: { padding: 4 },
+  removeBtnText: { fontSize: 18 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 56, marginBottom: 12 },
   emptyText: { fontSize: 16, color: colors.textSecondary, marginBottom: 20 },

@@ -106,10 +106,13 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ error: 'Wrong password' });
     if (!user.is_verified) {
-    return res.status(400).json({ error: 'Account not verified. Please check your email for verification link.' });
+      return res.status(400).json({ error: 'Account not verified. Please check your email for verification link.' });
+    }
+    if (user.is_active === false) {
+      return res.status(403).json({ error: 'Your account has been deactivated. Please contact admin.' });
     }
     const token = jwt.sign(
-      { userId: user.user_id, role: user.role },
+      { userId: user.user_id, role: user.role, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );

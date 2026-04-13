@@ -170,6 +170,17 @@ export default function AdminDashScreen({ navigation }) {
 
         {isSuperAdmin && (
           <>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Text style={styles.actionIconText}>🎓</Text>
+              </View>
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle}>Student Management</Text>
+                <Text style={styles.actionSub}>View and manage student accounts</Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
               <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
                 <Text style={styles.actionIconText}>📢</Text>
@@ -177,17 +188,6 @@ export default function AdminDashScreen({ navigation }) {
               <View style={styles.actionInfo}>
                 <Text style={styles.actionTitle}>Ad Manager</Text>
                 <Text style={styles.actionSub}>Upload and manage ads</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Text style={styles.actionIconText}>🎓</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Student Management</Text>
-                <Text style={styles.actionSub}>View and remove students</Text>
               </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
