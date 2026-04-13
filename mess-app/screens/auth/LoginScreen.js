@@ -124,6 +124,9 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.loginBtnText}>{loading ? 'Logging in...' : 'Login'}</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
+        </TouchableOpacity>
         <View style={styles.divider}>
           <View style={styles.dividerLine}/>
           <Text style={styles.dividerText}>New here?</Text>
@@ -162,6 +165,8 @@ const getStyles = (colors) => StyleSheet.create({
   loginBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
   loginBtnDisabled: { backgroundColor: colors.border },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
+  forgotBtn: { alignItems: 'center', paddingVertical: 10 },
+  forgotText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.divider },
   dividerText: { color: colors.textSecondary, paddingHorizontal: 12, fontSize: 13 },

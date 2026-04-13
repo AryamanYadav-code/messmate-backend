@@ -13,6 +13,7 @@ import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
+import ForgotPasswordScreen from './screens/auth/ForgotPasswordScreen';
 import HomeScreen from './screens/student/HomeScreen';
 import CartScreen from './screens/student/CartScreen';
 import OrderTrackScreen from './screens/student/OrderTrackScreen';
@@ -131,6 +132,7 @@ function MainNav() {
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Cart" component={CartScreen} />
         <Stack.Screen name="OrderTrack" component={OrderTrackScreen} />

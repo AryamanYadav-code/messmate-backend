@@ -16,7 +16,6 @@ export default function SettingsScreen({ navigation }) {
   const [darkMode, setDarkMode] = useState(isDark);
   const [notifications, setNotifications] = useState(true);
   const [passwordModal, setPasswordModal] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,8 +40,23 @@ export default function SettingsScreen({ navigation }) {
     setNotifications(notif !== 'false');
   };
 
+  const [passwordStep, setPasswordStep] = useState(1); // 1=send otp, 2=enter otp+pass
+  const [otp, setOtp] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
+
+  const sendChangePasswordOtp = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/change-password/send-otp', { user_id: parseInt(userId) });
+      setOtpEmail(res.data.email);
+      setPasswordStep(2);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to send OTP');
+    } finally { setLoading(false); }
+  };
+
   const changePassword = async () => {
-    if (!oldPassword || !newPassword || !confirmPassword)
+    if (!otp || !newPassword || !confirmPassword)
       return Alert.alert('Error', 'Please fill all fields');
     if (newPassword.length < 6)
       return Alert.alert('Error', 'New password must be at least 6 characters');
@@ -52,15 +66,20 @@ export default function SettingsScreen({ navigation }) {
     try {
       await api.post('/auth/change-password', {
         user_id: parseInt(userId),
-        old_password: oldPassword,
+        otp,
         new_password: newPassword
       });
       Alert.alert('Success! 🎉', 'Password changed successfully!');
-      setPasswordModal(false);
-      setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+      closePasswordModal();
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to change password');
     } finally { setLoading(false); }
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModal(false);
+    setPasswordStep(1);
+    setOtp(''); setNewPassword(''); setConfirmPassword(''); setOtpEmail('');
   };
 
   const toggleDarkMode = async (val) => {
@@ -263,49 +282,79 @@ export default function SettingsScreen({ navigation }) {
       <Modal visible={passwordModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Change Password</Text>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Current password"
-              placeholderTextColor="#bbb"
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="New password (min 6 chars)"
-              placeholderTextColor="#bbb"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Confirm new password"
-              placeholderTextColor="#bbb"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setPasswordModal(false);
-                  setOldPassword(''); setNewPassword(''); setConfirmPassword('');
-                }}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, loading && { backgroundColor: '#aaa' }]}
-                onPress={changePassword}
-                disabled={loading}>
-                <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save'}</Text>
-              </TouchableOpacity>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change Password</Text>
+              {passwordStep === 2 && (
+                <TouchableOpacity onPress={() => setPasswordStep(1)}>
+                  <Text style={styles.modalBack}>‹ Back</Text>
+                </TouchableOpacity>
+              )}
             </View>
+
+            {passwordStep === 1 ? (
+              <>
+                <Text style={styles.modalSubtitle}>
+                  We'll send a 6-digit verification code to your registered email to confirm it's you.
+                </Text>
+                <View style={styles.emailInfo}>
+                  <Text style={styles.emailInfoIcon}>✉️</Text>
+                  <Text style={styles.emailInfoText}>{email || 'your registered email'}</Text>
+                </View>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, loading && { backgroundColor: '#aaa' }]}
+                    onPress={sendChangePasswordOtp}
+                    disabled={loading}>
+                    <Text style={styles.saveBtnText}>{loading ? 'Sending...' : 'Send OTP'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalSubtitle}>
+                  Enter the 6-digit code sent to {otpEmail || 'your email'} and set your new password.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="6-digit OTP code"
+                  placeholderTextColor="#bbb"
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="New password (min 6 chars)"
+                  placeholderTextColor="#bbb"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Confirm new password"
+                  placeholderTextColor="#bbb"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, loading && { backgroundColor: '#aaa' }]}
+                    onPress={changePassword}
+                    disabled={loading}>
+                    <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -349,4 +398,10 @@ const getStyles = (colors) => StyleSheet.create({
   cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
   saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: 'bold' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalBack: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+  modalSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 16, lineHeight: 19 },
+  emailInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.inputBg, padding: 12, borderRadius: 10, marginBottom: 20 },
+  emailInfoIcon: { fontSize: 18 },
+  emailInfoText: { fontSize: 13, color: colors.text, fontWeight: '500', flex: 1 },
 });
