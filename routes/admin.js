@@ -1,4 +1,9 @@
+const express = require('express');
+const router = express.Router();
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const axios = require('axios');
+const db = require('../db');
 const auth = require('../middleware/auth');
 
 // Middleware to check if user is superadmin
