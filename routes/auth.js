@@ -122,16 +122,246 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/change-password', async (req, res) => {
-  const { user_id, old_password, new_password } = req.body;
+
+// ─── FORGOT PASSWORD: Send reset link via email ─────────────────────────────
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail) return res.status(400).json({ error: 'Email is required' });
+
   try {
-    const result = await db.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
-    if (result.rows.length === 0) return res.status(400).json({ error: 'User not found' });
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
+    if (result.rows.length === 0)
+      return res.status(404).json({ error: 'No account found with this email' });
+
     const user = result.rows[0];
-    const match = await bcrypt.compare(old_password, user.password_hash);
-    if (!match) return res.status(400).json({ error: 'Current password is incorrect' });
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expires_at = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Remove any existing token for this email
+    await db.query('DELETE FROM password_reset_tokens WHERE email = $1', [cleanEmail]);
+    await db.query(
+      'INSERT INTO password_reset_tokens (email, token, expires_at) VALUES ($1,$2,$3)',
+      [cleanEmail, token, expires_at]
+    );
+
+    const resetLink = `https://messmate-backend-gmb0.onrender.com/api/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(cleanEmail)}`;
+
+    await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+      to: [{ email: cleanEmail }],
+      subject: 'MessMate Password Reset',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: #6C63FF;">Reset Your Password</h2>
+          <p>Hi ${user.name},</p>
+          <p>We received a request to reset your MessMate password. Click the button below to set a new password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="background: #6C63FF; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+              Reset My Password
+            </a>
+          </div>
+          <p style="color: #888;">This link expires in 1 hour.</p>
+          <p style="color: #888;">If you did not request this, please ignore this email.</p>
+        </div>
+      `
+    }, {
+      headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' }
+    });
+
+    res.json({ message: 'Password reset link sent to your email!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── FORGOT PASSWORD: Show HTML form to enter new password ───────────────────
+router.get('/reset-password', async (req, res) => {
+  const { token, email } = req.query;
+  if (!token || !email) return res.status(400).send('Invalid link');
+
+  try {
+    const result = await db.query(
+      'SELECT * FROM password_reset_tokens WHERE token = $1 AND email = $2 AND is_used = false',
+      [token, email]
+    );
+    if (result.rows.length === 0) {
+      return res.send(`<html><body style="font-family:Arial;text-align:center;padding:50px">
+        <h2 style="color:#f44336">Invalid or Expired Link</h2>
+        <p>This password reset link is invalid or has already been used.</p>
+      </body></html>`);
+    }
+    if (new Date() > new Date(result.rows[0].expires_at)) {
+      return res.send(`<html><body style="font-family:Arial;text-align:center;padding:50px">
+        <h2 style="color:#f44336">Link Expired</h2>
+        <p>This link has expired. Please request a new one.</p>
+      </body></html>`);
+    }
+
+    // Serve a beautiful HTML form
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Reset Password - MessMate</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; background: #f0f0ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+          .card { background: white; padding: 36px 28px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(108,99,255,0.12); }
+          .logo { font-size: 40px; text-align: center; margin-bottom: 8px; }
+          h2 { color: #6C63FF; text-align: center; margin-bottom: 6px; font-size: 22px; }
+          p { color: #888; text-align: center; font-size: 13px; margin-bottom: 24px; }
+          label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 6px; }
+          input { width: 100%; padding: 13px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 15px; margin-bottom: 14px; outline: none; transition: border-color 0.2s; }
+          input:focus { border-color: #6C63FF; }
+          button { width: 100%; padding: 14px; background: #6C63FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 4px; }
+          button:hover { background: #5a52d5; }
+          .error { color: #f44336; text-align: center; font-size: 13px; margin-top: 10px; }
+          .success { display: none; text-align: center; }
+          .success h2 { color: #4CAF50; margin-bottom: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="logo">🍱</div>
+          <h2>Reset Password</h2>
+          <p>Enter your new password below</p>
+          <form id="form">
+            <label>New Password</label>
+            <input type="password" id="pass" placeholder="Min 6 characters" required minlength="6" />
+            <label>Confirm Password</label>
+            <input type="password" id="confirm" placeholder="Repeat new password" required />
+            <button type="submit" id="btn">Set New Password</button>
+            <div class="error" id="err"></div>
+          </form>
+          <div class="success" id="ok">
+            <h2>✅ Password Reset!</h2>
+            <p>Your password has been updated successfully.</p>
+            <p style="margin-top:12px">You can now log in to the MessMate app with your new password.</p>
+          </div>
+        </div>
+        <script>
+          document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('pass').value;
+            const confirm = document.getElementById('confirm').value;
+            const err = document.getElementById('err');
+            if (pass !== confirm) { err.innerText = 'Passwords do not match'; return; }
+            if (pass.length < 6) { err.innerText = 'Password must be at least 6 characters'; return; }
+            document.getElementById('btn').innerText = 'Saving...';
+            const res = await fetch('/api/auth/reset-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: '${token}', email: '${email}', new_password: pass })
+            });
+            const data = await res.json();
+            if (res.ok) {
+              document.getElementById('form').style.display = 'none';
+              document.getElementById('ok').style.display = 'block';
+            } else {
+              err.innerText = data.error || 'Something went wrong';
+              document.getElementById('btn').innerText = 'Set New Password';
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    res.status(500).send('Something went wrong');
+  }
+});
+
+// ─── FORGOT PASSWORD: Handle form submission (POST) ──────────────────────────
+router.post('/reset-password', async (req, res) => {
+  const { token, email, new_password } = req.body;
+  if (!token || !email || !new_password)
+    return res.status(400).json({ error: 'Missing fields' });
+  if (new_password.length < 6)
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  try {
+    const result = await db.query(
+      'SELECT * FROM password_reset_tokens WHERE token = $1 AND email = $2 AND is_used = false',
+      [token, email]
+    );
+    if (result.rows.length === 0)
+      return res.status(400).json({ error: 'Invalid or already used link' });
+    if (new Date() > new Date(result.rows[0].expires_at))
+      return res.status(400).json({ error: 'Link expired. Please request a new one.' });
+
+    const hash = await bcrypt.hash(new_password, 10);
+    await db.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hash, email]);
+    await db.query('UPDATE password_reset_tokens SET is_used = true WHERE token = $1', [token]);
+
+    res.json({ message: 'Password reset successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── CHANGE PASSWORD (Settings): Send OTP to registered email ────────────────
+router.post('/change-password/send-otp', async (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ error: 'user_id required' });
+  try {
+    const result = await db.query('SELECT email, name FROM users WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const { email, name } = result.rows[0];
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires_at = new Date(Date.now() + 10 * 60 * 1000);
+    await db.query('DELETE FROM otp_codes WHERE email = $1', [email]);
+    await db.query('INSERT INTO otp_codes (email, otp, expires_at) VALUES ($1,$2,$3)', [email, otp, expires_at]);
+
+    await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+      to: [{ email }],
+      subject: 'MessMate — Password Change Verification',
+      htmlContent: `
+        <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto">
+          <h2 style="color:#6C63FF">Password Change Request</h2>
+          <p>Hi ${name},</p>
+          <p>Your verification code to change your MessMate password:</p>
+          <div style="background:#f0f0ff;padding:20px;text-align:center;border-radius:10px;margin:20px 0">
+            <h1 style="color:#6C63FF;letter-spacing:8px;margin:0">${otp}</h1>
+          </div>
+          <p style="color:#888">This code expires in 10 minutes.</p>
+          <p style="color:#888">If you didn't request this, someone on your device may have opened Settings.</p>
+        </div>
+      `
+    }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' } });
+
+    res.json({ message: `OTP sent to your registered email`, email: email.replace(/(.{2}).+(@.+)/, '$1***$2') });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/change-password', async (req, res) => {
+  const { user_id, otp, new_password } = req.body;
+  try {
+    const userResult = await db.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
+    if (userResult.rows.length === 0) return res.status(400).json({ error: 'User not found' });
+    const user = userResult.rows[0];
+
+    // Verify OTP
+    const otpResult = await db.query(
+      'SELECT * FROM otp_codes WHERE email = $1 AND otp = $2',
+      [user.email, otp]
+    );
+    if (otpResult.rows.length === 0)
+      return res.status(400).json({ error: 'Invalid OTP' });
+    if (new Date() > new Date(otpResult.rows[0].expires_at))
+      return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
+
+    if (!new_password || new_password.length < 6)
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
     const hash = await bcrypt.hash(new_password, 10);
     await db.query('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, user_id]);
+    await db.query('DELETE FROM otp_codes WHERE email = $1', [user.email]);
     res.json({ message: 'Password changed successfully!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
