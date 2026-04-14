@@ -151,6 +151,8 @@ function MainNav() {
         <Stack.Screen name="Staff" component={StaffScreen} />
         <Stack.Screen name="AdminOrderHistory" component={AdminOrderHistoryScreen} />
         <Stack.Screen name="StudentOrderHistory" component={StudentOrderHistoryScreen} />
+        <Stack.Screen name="Feedback" component={FeedbackScreen} />
+        <Stack.Screen name="FeedbackView" component={FeedbackViewScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
