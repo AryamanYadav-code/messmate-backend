@@ -25,6 +25,8 @@ import SettingsScreen from './screens/student/SettingsScreen';
 import StudentsScreen from './screens/admin/StudentsScreen';
 import StaffScreen from './screens/admin/StaffScreen';
 import StudentOrderHistoryScreen from './screens/admin/StudentOrderHistoryScreen';
+import FeedbackScreen from './screens/student/FeedbackScreen';
+import FeedbackViewScreen from './screens/admin/FeedbackViewScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;

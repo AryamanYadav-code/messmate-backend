@@ -191,6 +191,16 @@ export default function AdminDashScreen({ navigation }) {
               </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('FeedbackView')}>
+             <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+               <Text style={styles.actionIconText}>⭐</Text>
+             </View>
+             <View style={styles.actionInfo}>
+               <Text style={styles.actionTitle}>Customer Feedback</Text>
+               <Text style={styles.actionSub}>View ratings and reviews</Text>
+             </View>
+             <Text style={styles.arrow}>›</Text>
+             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Staff')}>
               <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>

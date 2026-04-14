@@ -19,9 +19,16 @@ export default function PickupCodeScreen({ route, navigation }) {
       <Text style={styles.note}>Order #{order.order_id}</Text>
       <Text style={styles.note}>Total: ₹{order.total_amount}</Text>
 
-      <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('Home')}>
-        <Text style={styles.btnText}>Back to Home</Text>
+      <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('Feedback', {
+       order_id: order.order_id,
+       total_amount: order.total_amount
+       })}>
+      <Text style={styles.btnText}>Rate Your Order ⭐</Text>
       </TouchableOpacity>
+
+<TouchableOpacity style={styles.skipBtn} onPress={() => navigation.replace('Home')}>
+  <Text style={styles.skipBtnText}>Skip</Text>
+</TouchableOpacity>
     </View>
   );
 }
@@ -34,5 +41,7 @@ const getStyles = (colors) => StyleSheet.create({
   code: { fontSize: 52, fontWeight: 'bold', color: '#fff', letterSpacing: 8 },
   note: { fontSize: 16, color: colors.textSecondary, marginBottom: 8 },
   btn: { backgroundColor: colors.primary, padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 30, width: '100%' },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  skipBtn: { marginTop: 12, alignItems: 'center' },
+  skipBtnText: { color: '#888', fontSize: 14 },
 });

@@ -118,4 +118,37 @@ router.post('/verify-code', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Submit feedback
+router.post('/:order_id/feedback', async (req, res) => {
+  const { rating, review_text } = req.body;
+  try {
+    const existing = await db.query(
+      'SELECT * FROM feedback WHERE order_id = $1',
+      [req.params.order_id]
+    );
+    if (existing.rows.length > 0)
+      return res.status(400).json({ error: 'Feedback already submitted!' });
+
+    await db.query(
+      'INSERT INTO feedback (order_id, rating, review_text) VALUES ($1,$2,$3)',
+      [req.params.order_id, rating, review_text]
+    );
+    res.json({ message: 'Feedback submitted! Thank you!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get feedback for admin
+router.get('/feedback/all', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT f.*, o.total_amount, o.meal_slot, u.name as student_name
+       FROM feedback f
+       JOIN orders o ON f.order_id = o.order_id
+       JOIN users u ON o.user_id = u.user_id
+       ORDER BY f.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
