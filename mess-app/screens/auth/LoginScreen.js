@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { savePushToken } from '../../services/pushNotifications';
 import { useTheme } from '../../context/ThemeContext';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export default function LoginScreen({ navigation }) {
   const { colors } = useTheme();
@@ -14,6 +15,54 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('student');
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '344290150113-e75lk49v36hb3hlei2410sb40s9s2kgl.apps.googleusercontent.com',
+    });
+  }, []);
+
+  const googleLogin = async () => {
+    if (role !== 'student') {
+       Alert.alert('Only Students', 'Google Login is currently only for student accounts.');
+       return;
+    }
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
+      
+      setLoading(true);
+      const idToken = userInfo.data?.idToken || userInfo.idToken || tokens.idToken;
+
+      const res = await api.post('/auth/google', { idToken });
+      
+      await AsyncStorage.setItem('token', res.data.token);
+      await AsyncStorage.setItem('role', res.data.role);
+      await AsyncStorage.setItem('name', res.data.name);
+      await AsyncStorage.setItem('user_id', res.data.userId.toString());
+      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@messmate.com');
+      
+      const pushSetup = await savePushToken(res.data.userId);
+      if (pushSetup?.ok === false) {
+        Alert.alert('Notification Setup', pushSetup.error || 'Could not register push notifications.');
+      }
+
+      navigation.replace('Home');
+    } catch (error) {
+      if (error.code === 'SIGN_IN_CANCELLED') {
+        console.log('User cancelled the login flow');
+      } else if (error.code === 'IN_PROGRESS') {
+        console.log('Sign in is in progress already');
+      } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        Alert.alert('Error', 'Play services not available or outdated');
+      } else {
+        Alert.alert('Google Login Error', error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
  const login = async () => {
   if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
@@ -124,6 +173,14 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.loginBtnText}>{loading ? 'Logging in...' : 'Login'}</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[styles.googleBtn, loading && styles.loginBtnDisabled]}
+          onPress={googleLogin}
+          disabled={loading}>
+          <Text style={styles.googleBtnIcon}>G</Text>
+          <Text style={styles.googleBtnText}>Continue with Google</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
@@ -165,7 +222,10 @@ const getStyles = (colors) => StyleSheet.create({
   loginBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
   loginBtnDisabled: { backgroundColor: colors.border },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
-  forgotBtn: { alignItems: 'center', paddingVertical: 10 },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 12, marginTop: 12, elevation: 2, borderWidth: 1, borderColor: '#eee' },
+  googleBtnIcon: { color: '#DB4437', fontWeight: 'bold', fontSize: 20, marginRight: 10 },
+  googleBtnText: { color: '#333', fontSize: 15, fontWeight: 'bold' },
+  forgotBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 8 },
   forgotText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.divider },

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, SafeAreaView } from 'react-native';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function FeedbackScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { order_id, total_amount } = route.params;
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
@@ -60,7 +63,7 @@ export default function FeedbackScreen({ route, navigation }) {
         <TextInput
           style={styles.reviewInput}
           placeholder="Tell us about your experience..."
-          placeholderTextColor="#bbb"
+          placeholderTextColor={colors.textSecondary}
           value={review}
           onChangeText={setReview}
           multiline
@@ -85,27 +88,27 @@ export default function FeedbackScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 20, alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 20, alignItems: 'center' },
+  headerTitle: { color: colors.headerText, fontSize: 20, fontWeight: 'bold' },
   content: { padding: 24 },
-  orderInfo: { backgroundColor: '#f0f0ff', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 30 },
-  orderInfoText: { fontSize: 13, color: '#888' },
-  orderInfoAmount: { fontSize: 22, fontWeight: 'bold', color: '#6C63FF', marginTop: 4 },
-  question: { fontSize: 18, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 20 },
+  orderInfo: { backgroundColor: colors.primaryLight, borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 30 },
+  orderInfoText: { fontSize: 13, color: colors.textSecondary },
+  orderInfoAmount: { fontSize: 22, fontWeight: 'bold', color: colors.primary, marginTop: 4 },
+  question: { fontSize: 18, fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: 20 },
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 16 },
   starBtn: { padding: 4 },
-  star: { fontSize: 44, color: '#ddd' },
-  starActive: { color: '#FFD700' },
+  star: { fontSize: 44, color: colors.border },
+  starActive: { color: colors.warning },
   emojiRow: { alignItems: 'center', marginBottom: 24 },
   emoji: { fontSize: 48 },
-  ratingLabel: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 8 },
-  reviewLabel: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 8 },
-  reviewInput: { borderWidth: 1.5, borderColor: '#eee', borderRadius: 12, padding: 14, fontSize: 14, color: '#333', backgroundColor: '#fafafa', height: 120, marginBottom: 20 },
-  submitBtn: { backgroundColor: '#6C63FF', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
-  submitBtnDisabled: { backgroundColor: '#aaa' },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  ratingLabel: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginTop: 8 },
+  reviewLabel: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
+  reviewInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 14, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, height: 120, marginBottom: 20 },
+  submitBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  submitBtnDisabled: { backgroundColor: colors.textSecondary },
+  submitBtnText: { color: colors.headerText, fontSize: 16, fontWeight: 'bold' },
   skipBtn: { alignItems: 'center' },
-  skipBtnText: { color: '#888', fontSize: 14 },
-}); 
+  skipBtnText: { color: colors.textSecondary, fontSize: 14 },
+});

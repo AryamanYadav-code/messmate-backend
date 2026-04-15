@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function FeedbackViewScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
   const [feedback, setFeedback] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [avgRating, setAvgRating] = useState(0);
@@ -50,7 +53,7 @@ export default function FeedbackViewScreen({ navigation }) {
         data={feedback}
         keyExtractor={item => item.feedback_id.toString()}
         contentContainerStyle={{ padding: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -91,29 +94,29 @@ export default function FeedbackViewScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  avgCard: { backgroundColor: '#6C63FF', paddingVertical: 20, alignItems: 'center' },
+const getStyles = (colors, isDark) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
+  avgCard: { backgroundColor: colors.primary, paddingVertical: 20, alignItems: 'center' },
   avgNumber: { fontSize: 48, fontWeight: 'bold', color: '#FFD700' },
   avgStars: { fontSize: 24, color: '#FFD700', marginTop: 4 },
   avgLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 6 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, elevation: 2 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, marginBottom: 10, elevation: 2, borderWidth: 1, borderColor: colors.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   studentInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#EEF', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#6C63FF', fontWeight: 'bold', fontSize: 16 },
-  studentName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  orderInfo: { fontSize: 12, color: '#888', marginTop: 2 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: isDark ? '#2A2A4A' : '#EEF', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
+  studentName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  orderInfo: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   ratingBadge: { alignItems: 'flex-end' },
   ratingStars: { fontSize: 14, color: '#FFD700' },
-  ratingNum: { fontSize: 12, color: '#888', marginTop: 2 },
-  reviewBox: { backgroundColor: '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8 },
-  reviewText: { fontSize: 13, color: '#555', fontStyle: 'italic', lineHeight: 20 },
-  date: { fontSize: 11, color: '#aaa' },
+  ratingNum: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  reviewBox: { backgroundColor: isDark ? '#2A2A2A' : '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8 },
+  reviewText: { fontSize: 13, color: isDark ? '#DDD' : '#555', fontStyle: 'italic', lineHeight: 20 },
+  date: { fontSize: 11, color: colors.textSecondary },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: '#888' },
+  emptyText: { fontSize: 16, color: colors.textSecondary },
 }); 

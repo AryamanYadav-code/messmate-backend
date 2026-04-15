@@ -7,8 +7,26 @@ function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+const VALID_ORDER_STATUSES = new Set([
+  'pending',
+  'approved',
+  'preparing',
+  'ready',
+  'delivered',
+  'rejected',
+  'cancelled'
+]);
+
 router.post('/', async (req, res) => {
   const { user_id, items, total_amount, meal_slot, special_note } = req.body;
+  if (!user_id || !Array.isArray(items) || items.length === 0 || total_amount == null || !meal_slot) {
+    return res.status(400).json({ error: 'Missing required order fields' });
+  }
+
+  if (!items.every(item => item?.item_id && Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0)) {
+    return res.status(400).json({ error: 'Invalid order items' });
+  }
+
   const pickup_code = generateCode();
   try {
     const result = await db.query(
@@ -69,6 +87,10 @@ router.get('/:order_id', async (req, res) => {
 
 router.put('/:order_id/status', async (req, res) => {
   const { status } = req.body;
+  if (!VALID_ORDER_STATUSES.has(status)) {
+    return res.status(400).json({ error: 'Invalid order status' });
+  }
+
   try {
     await db.query('UPDATE orders SET status = $1 WHERE order_id = $2', [status, req.params.order_id]);
     
@@ -106,11 +128,16 @@ router.put('/:order_id/status', async (req, res) => {
 
 router.post('/verify-code', async (req, res) => {
   const { pickup_code } = req.body;
+  if (!pickup_code) {
+    return res.status(400).json({ error: 'Pickup code is required' });
+  }
+
   try {
     const result = await db.query(
       `SELECT o.*, u.name FROM orders o
        JOIN users u ON o.user_id = u.user_id
-       WHERE o.pickup_code = $1`,
+       WHERE o.pickup_code = $1
+       AND o.status = 'ready'`,
       [pickup_code]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Invalid code' });
@@ -148,6 +175,23 @@ router.get('/feedback/all', async (req, res) => {
        ORDER BY f.created_at DESC`
     );
     res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get delivered orders without feedback
+router.get('/unrated/:user_id', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT o.* FROM orders o
+       LEFT JOIN feedback f ON o.order_id = f.order_id
+       WHERE o.user_id = $1 
+       AND o.status = 'delivered'
+       AND f.feedback_id IS NULL
+       ORDER BY o.created_at DESC
+       LIMIT 1`,
+      [req.params.user_id]
+    );
+    res.json(result.rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

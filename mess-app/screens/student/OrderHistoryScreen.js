@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
@@ -19,10 +19,12 @@ export default function OrderHistoryScreen({ navigation }) {
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ratedOrders, setRatedOrders] = useState([]);
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+  fetchOrders();
+  fetchRatedOrders();
+}, []);
 
   const fetchOrders = async () => {
     try {
@@ -32,6 +34,12 @@ export default function OrderHistoryScreen({ navigation }) {
     } catch (err) { console.log(err); }
     finally { setLoading(false); }
   };
+  const fetchRatedOrders = async () => {
+  try {
+    const res = await api.get('/orders/feedback/all');
+    setRatedOrders(res.data.map(f => f.order_id));
+  } catch (err) { console.log(err); }
+};
 
   return (
     <View style={styles.container}>
@@ -59,7 +67,7 @@ export default function OrderHistoryScreen({ navigation }) {
               }}>
               <View style={styles.cardHeader}>
                 <Text style={styles.orderId}>Order #{item.order_id}</Text>
-                <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] }]}>
+                <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] || colors.textSecondary }]}>
                   <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
                 </View>
               </View>
@@ -73,6 +81,20 @@ export default function OrderHistoryScreen({ navigation }) {
                   hour: '2-digit', minute: '2-digit'
                 })}
               </Text>
+              {item.status === 'delivered' && !ratedOrders.includes(item.order_id) && (
+  <TouchableOpacity
+    style={styles.rateBtn}
+    onPress={() => navigation.navigate('Feedback', {
+      order_id: item.order_id,
+      total_amount: item.total_amount
+    })}>
+    <Text style={styles.rateBtnText}>⭐ Rate this order</Text>
+  </TouchableOpacity>
+)}
+
+{item.status === 'delivered' && ratedOrders.includes(item.order_id) && (
+  <Text style={styles.ratedText}>✅ Feedback submitted</Text>
+)}
               {item.status === 'ready' && (
                 <Text style={styles.pickupHint}>Tap to view pickup code →</Text>
               )}
@@ -110,5 +132,8 @@ const getStyles = (colors) => StyleSheet.create({
   emptyContainer: { alignItems: 'center', marginTop: 80 },
   emptyIcon: { fontSize: 60, marginBottom: 16 },
   emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: colors.textSecondary }
+  emptySubtext: { fontSize: 14, color: colors.textSecondary },
+  rateBtn: { backgroundColor: '#FFF9E6', borderWidth: 1, borderColor: '#FFD700', borderRadius: 8, padding: 8, marginTop: 10, alignItems: 'center' },
+  rateBtnText: { color: '#FF9800', fontWeight: '600', fontSize: 13 },
+  ratedText: { color: '#4CAF50', fontSize: 12, marginTop: 8, fontWeight: '500' }
 });

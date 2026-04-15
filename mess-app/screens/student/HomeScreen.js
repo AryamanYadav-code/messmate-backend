@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
@@ -16,7 +16,7 @@ export default function HomeScreen({ navigation }) {
   const [name, setName] = useState('');
   const [ads, setAds] = useState([]);
   const [currentAd, setCurrentAd] = useState(0);
-  const { width } = Dimensions.get('window');
+  const [unratedOrder, setUnratedOrder] = useState(null);
 
 
 
@@ -46,20 +46,34 @@ const fetchActiveOrder = async () => {
   } catch (err) { console.log(err); }
 };
 
+const fetchUnratedOrder = async () => {
+  try {
+    const id = await AsyncStorage.getItem('user_id');
+    const res = await api.get(`/orders/unrated/${id}`);
+    setUnratedOrder(res.data);
+  } catch (err) { console.log(err); }
+};
+
 
 
 useEffect(() => {
-  AsyncStorage.getItem('name').then(n => setName(n));
+  AsyncStorage.getItem('name').then(n => setName(n || ''));
+}, []);
+
+useEffect(() => {
   fetchMenu(category);
 }, [category]);
 
 useEffect(() => {
   fetchActiveOrder();
   fetchAds();
-  
-  const orderInterval = setInterval(fetchActiveOrder, 5000);
+  fetchUnratedOrder();
+  const orderInterval = setInterval(() => {
+    fetchActiveOrder();
+    fetchUnratedOrder();
+  }, 5000);
   return () => clearInterval(orderInterval);
-}, []); // Active order and ads initially
+}, []);
 
 useEffect(() => {
   if (ads.length === 0) return;
@@ -164,7 +178,23 @@ useEffect(() => {
     </View>
   </TouchableOpacity>
 )}
-
+{unratedOrder && (
+  <TouchableOpacity
+    style={styles.ratingBanner}
+    onPress={() => navigation.navigate('Feedback', {
+      order_id: unratedOrder.order_id,
+      total_amount: unratedOrder.total_amount
+    })}>
+    <View style={styles.ratingBannerLeft}>
+      <Text style={styles.ratingBannerIcon}>⭐</Text>
+      <View>
+        <Text style={styles.ratingBannerTitle}>How was your meal?</Text>
+        <Text style={styles.ratingBannerSub}>Rate Order #{unratedOrder.order_id}</Text>
+      </View>
+    </View>
+    <Text style={styles.ratingBannerArrow}>›</Text>
+  </TouchableOpacity>
+)}
       <FlatList
         data={menu}
         keyExtractor={item => item.item_id.toString()}
@@ -272,5 +302,11 @@ const getStyles = (colors) => StyleSheet.create({
   qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { padding: 6, paddingHorizontal: 10 },
   qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 13, paddingHorizontal: 4 }
+  qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 13, paddingHorizontal: 4 },
+  ratingBanner: { backgroundColor: '#FFF9E6', marginHorizontal: 10, marginBottom: 8, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#FFD700', elevation: 2 },
+  ratingBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ratingBannerIcon: { fontSize: 28 },
+  ratingBannerTitle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+  ratingBannerSub: { fontSize: 12, color: '#888', marginTop: 2 },
+  ratingBannerArrow: { fontSize: 22, color: '#FFD700', fontWeight: 'bold' },
 });

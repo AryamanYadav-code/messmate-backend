@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
 const axios = require('axios');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
 
@@ -122,6 +124,59 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+// ─── GOOGLE LOGIN ────────────────────────────────────────────────────────────
+router.post('/google', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ error: 'idToken is required' });
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID, 
+    });
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Check if user exists
+    let result = await db.query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
+    let user;
+    
+    if (result.rows.length === 0) {
+      // Create new user automatically since Google verified them
+      // We generate a long, random un-guessable password hash for them
+      const randomPass = require('crypto').randomBytes(32).toString('hex');
+      const hash = await bcrypt.hash(randomPass, 10);
+      
+      const insertResult = await db.query(
+        'INSERT INTO users (name, email, password_hash, role, is_verified) VALUES ($1,$2,$3,$4,true) RETURNING *',
+        [name, cleanEmail, hash, 'student']
+      );
+      user = insertResult.rows[0];
+    } else {
+      user = result.rows[0];
+      if (user.is_active === false) {
+        return res.status(403).json({ error: 'Your account has been deactivated. Please contact admin.' });
+      }
+      // Set to verified if they previously signed up manually but hadn't verified email yet
+      if (!user.is_verified) {
+         await db.query('UPDATE users SET is_verified = true WHERE user_id = $1', [user.user_id]);
+      }
+    }
+
+    const token = jwt.sign(
+      { userId: user.user_id, role: user.role, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({ token, role: user.role, name: user.name, userId: user.user_id });
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    res.status(401).json({ error: 'Invalid Google Identity token' });
+  }
+});
 
 // ─── FORGOT PASSWORD: Send reset link via email ─────────────────────────────
 router.post('/forgot-password', async (req, res) => {

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import api from '../../services/api';
+import { savePushToken } from '../../services/pushNotifications';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function RegisterScreen({ navigation }) {
@@ -15,6 +18,50 @@ export default function RegisterScreen({ navigation }) {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '344290150113-e75lk49v36hb3hlei2410sb40s9s2kgl.apps.googleusercontent.com',
+    });
+  }, []);
+
+  const googleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
+      
+      setLoading(true);
+      const idToken = userInfo.data?.idToken || userInfo.idToken || tokens.idToken;
+
+      const res = await api.post('/auth/google', { idToken });
+      
+      await AsyncStorage.setItem('token', res.data.token);
+      await AsyncStorage.setItem('role', res.data.role);
+      await AsyncStorage.setItem('name', res.data.name);
+      await AsyncStorage.setItem('user_id', res.data.userId.toString());
+      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@messmate.com');
+      
+      const pushSetup = await savePushToken(res.data.userId);
+      if (pushSetup?.ok === false) {
+        Alert.alert('Notification Setup', pushSetup.error || 'Could not register push notifications.');
+      }
+
+      navigation.replace('Home');
+    } catch (error) {
+      if (error.code === 'SIGN_IN_CANCELLED') {
+        console.log('User cancelled the login flow');
+      } else if (error.code === 'IN_PROGRESS') {
+        console.log('Sign in is in progress already');
+      } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        Alert.alert('Error', 'Play services not available or outdated');
+      } else {
+        Alert.alert('Google Login Error', error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sendOtp = async () => {
     if (!email) return Alert.alert('Error', 'Please enter your email first');
@@ -153,6 +200,16 @@ export default function RegisterScreen({ navigation }) {
           </>
         )}
 
+        {!otpSent && (
+          <TouchableOpacity
+            style={[styles.googleBtn, loading && styles.registerBtnDisabled]}
+            onPress={googleLogin}
+            disabled={loading}>
+            <Text style={styles.googleBtnIcon}>G</Text>
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.divider}>
           <View style={styles.dividerLine}/>
           <Text style={styles.dividerText}>Already registered?</Text>
@@ -190,6 +247,9 @@ const getStyles = (colors) => StyleSheet.create({
   registerBtn: { backgroundColor: colors.primary, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 8, elevation: 3 },
   registerBtnDisabled: { backgroundColor: colors.border },
   registerBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 12, marginTop: 16, elevation: 2, borderWidth: 1, borderColor: '#eee' },
+  googleBtnIcon: { color: '#DB4437', fontWeight: 'bold', fontSize: 20, marginRight: 10 },
+  googleBtnText: { color: '#333', fontSize: 15, fontWeight: 'bold' },
   resendBtn: { alignItems: 'center', marginTop: 12 },
   resendBtnText: { color: colors.primary, fontSize: 13, fontWeight: '500' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },

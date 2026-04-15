@@ -5,7 +5,19 @@ import { useTheme } from '../../context/ThemeContext';
 export default function PickupCodeScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { order } = route.params;
+  const order = route?.params?.order;
+
+  if (!order) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Pickup details unavailable</Text>
+        <Text style={styles.subtitle}>Please open this screen from active order tracking.</Text>
+        <TouchableOpacity style={styles.btn} onPress={() => navigation.replace('Home')}>
+          <Text style={styles.btnText}>Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -13,17 +25,14 @@ export default function PickupCodeScreen({ route, navigation }) {
       <Text style={styles.subtitle}>Show this code at the counter</Text>
 
       <View style={styles.codeBox}>
-        <Text style={styles.code}>{order.pickup_code}</Text>
+        <Text style={styles.code}>{order.pickup_code || '------'}</Text>
       </View>
 
-      <Text style={styles.note}>Order #{order.order_id}</Text>
-      <Text style={styles.note}>Total: ₹{order.total_amount}</Text>
+      <Text style={styles.note}>Order #{order.order_id || '-'}</Text>
+      <Text style={styles.note}>Total: ₹{order.total_amount ?? '-'}</Text>
 
-      <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('Feedback', {
-       order_id: order.order_id,
-       total_amount: order.total_amount
-       })}>
-      <Text style={styles.btnText}>Rate Your Order ⭐</Text>
+      <TouchableOpacity style={styles.btn} onPress={() => navigation.replace('Home')}>
+       <Text style={styles.btnText}>Back to Home</Text>
       </TouchableOpacity>
 
 <TouchableOpacity style={styles.skipBtn} onPress={() => navigation.replace('Home')}>
