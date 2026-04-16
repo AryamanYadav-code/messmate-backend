@@ -90,6 +90,15 @@ export default function SettingsScreen({ navigation }) {
   const toggleNotifications = async (val) => {
     setNotifications(val);
     await AsyncStorage.setItem('notifications', val.toString());
+    if (!val) {
+      try {
+        await api.post('/auth/save-token', { user_id: parseInt(userId), push_token: null });
+      } catch (err) {
+        console.log('Error clearing push token', err);
+      }
+    } else {
+      syncNotifs();
+    }
   };
 
   const syncNotifs = async () => {

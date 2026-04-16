@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,6 +20,7 @@ export default function OrderHistoryScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ratedOrders, setRatedOrders] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
   fetchOrders();
@@ -41,6 +42,10 @@ export default function OrderHistoryScreen({ navigation }) {
   } catch (err) { console.log(err); }
 };
 
+  const filteredOrders = orders.filter(o => 
+    !searchQuery || o.order_id.toString().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -51,11 +56,21 @@ export default function OrderHistoryScreen({ navigation }) {
         <View style={{ width: 50 }}/>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, backgroundColor: colors.background }}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Order ID..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
       {loading ? (
         <Text style={styles.loading}>Loading...</Text>
       ) : (
         <FlatList
-          data={orders}
+          data={filteredOrders}
           keyExtractor={item => item.order_id.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -72,8 +87,19 @@ export default function OrderHistoryScreen({ navigation }) {
                 </View>
               </View>
               <View style={styles.cardBody}>
-                <Text style={styles.amount}>₹{item.total_amount}</Text>
-                <Text style={styles.slot}>{item.meal_slot}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={styles.amount}>₹{item.total_amount}</Text>
+                  <Text style={styles.slot}>{item.meal_slot}</Text>
+                </View>
+                {item.items && item.items.length > 0 && (
+                  <View style={styles.itemsList}>
+                    {item.items.map((it, idx) => (
+                      <Text key={idx} style={styles.itemText}>
+                        • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
+                      </Text>
+                    ))}
+                  </View>
+                )}
               </View>
               <Text style={styles.date}>
                 {new Date(item.created_at).toLocaleDateString('en-IN', {
@@ -124,9 +150,12 @@ const getStyles = (colors) => StyleSheet.create({
   orderId: { fontSize: 16, fontWeight: 'bold', color: colors.text },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  cardBody: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.card },
+  cardBody: { marginBottom: 8 },
   amount: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
   slot: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
+  itemsList: { backgroundColor: colors.background, padding: 10, borderRadius: 8, marginTop: 12 },
+  itemText: { fontSize: 13, color: colors.text, marginBottom: 4 },
   date: { fontSize: 12, color: colors.textSecondary },
   pickupHint: { color: colors.success, fontWeight: 'bold', fontSize: 13, marginTop: 8 },
   emptyContainer: { alignItems: 'center', marginTop: 80 },

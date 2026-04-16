@@ -47,7 +47,11 @@ router.post('/', async (req, res) => {
 router.get('/user/:user_id', async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT o.*,
+        (SELECT json_agg(json_build_object('item_id', oi.item_id, 'quantity', oi.quantity, 'price', oi.price_at_order, 'name', m.name))
+         FROM order_items oi JOIN menu_items m ON oi.item_id = m.item_id
+         WHERE oi.order_id = o.order_id) as items
+       FROM orders o WHERE o.user_id = $1 ORDER BY o.created_at DESC`,
       [req.params.user_id]
     );
     res.json(result.rows);
@@ -57,7 +61,11 @@ router.get('/user/:user_id', async (req, res) => {
 router.get('/admin/pending', async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT o.*, u.name, u.email FROM orders o
+      `SELECT o.*, u.name, u.email,
+        (SELECT json_agg(json_build_object('item_id', oi.item_id, 'quantity', oi.quantity, 'price', oi.price_at_order, 'name', m.name))
+         FROM order_items oi JOIN menu_items m ON oi.item_id = m.item_id
+         WHERE oi.order_id = o.order_id) as items
+       FROM orders o
        JOIN users u ON o.user_id = u.user_id
        WHERE o.status IN ('pending','approved','preparing','ready')
        ORDER BY o.created_at ASC`
@@ -69,7 +77,11 @@ router.get('/admin/pending', async (req, res) => {
 router.get('/admin/history', async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT o.*, u.name, u.email FROM orders o
+      `SELECT o.*, u.name, u.email,
+        (SELECT json_agg(json_build_object('item_id', oi.item_id, 'quantity', oi.quantity, 'price', oi.price_at_order, 'name', m.name))
+         FROM order_items oi JOIN menu_items m ON oi.item_id = m.item_id
+         WHERE oi.order_id = o.order_id) as items
+       FROM orders o
        JOIN users u ON o.user_id = u.user_id
        WHERE o.status IN ('delivered', 'cancelled', 'rejected')
        ORDER BY o.created_at DESC`

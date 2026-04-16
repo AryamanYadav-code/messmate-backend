@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, TextInput } from 'react-native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -21,6 +21,7 @@ export default function StudentOrderHistoryScreen({ route, navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -40,6 +41,10 @@ export default function StudentOrderHistoryScreen({ route, navigation }) {
     setRefreshing(false);
   };
 
+  const filteredOrders = orders.filter(o => 
+    !searchQuery || o.order_id.toString().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -50,11 +55,21 @@ export default function StudentOrderHistoryScreen({ route, navigation }) {
         <View style={{ width: 60 }}/>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, backgroundColor: colors.background }}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Order ID..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
       {loading ? (
         <Text style={styles.loading}>Loading...</Text>
       ) : (
         <FlatList
-          data={orders}
+          data={filteredOrders}
           keyExtractor={item => item.order_id.toString()}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
           contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
@@ -70,14 +85,25 @@ export default function StudentOrderHistoryScreen({ route, navigation }) {
               </View>
               
               <View style={styles.cardBody}>
-                <View style={styles.detailBox}>
-                   <Text style={styles.detailLabel}>Amount</Text>
-                   <Text style={styles.amount}>₹{item.total_amount}</Text>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <View style={styles.detailBox}>
+                     <Text style={styles.detailLabel}>Amount</Text>
+                     <Text style={styles.amount}>₹{item.total_amount}</Text>
+                  </View>
+                  <View style={styles.detailBox}>
+                     <Text style={styles.detailLabel}>Slot</Text>
+                     <Text style={styles.slot}>{item.meal_slot}</Text>
+                  </View>
                 </View>
-                <View style={styles.detailBox}>
-                   <Text style={styles.detailLabel}>Slot</Text>
-                   <Text style={styles.slot}>{item.meal_slot}</Text>
-                </View>
+                {item.items && item.items.length > 0 && (
+                  <View style={styles.itemsList}>
+                    {item.items.map((it, idx) => (
+                      <Text key={idx} style={styles.itemText}>
+                        • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
+                      </Text>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <Text style={styles.date}>
@@ -112,11 +138,14 @@ const getStyles = (colors, isDark) => StyleSheet.create({
   orderId: { fontSize: 16, fontWeight: 'bold', color: colors.text },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  cardBody: { flexDirection: 'row', gap: 16, marginBottom: 12, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 12 },
+  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.card },
+  cardBody: { marginBottom: 8, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 12 },
   detailBox: { flex: 1 },
   detailLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
   amount: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   slot: { fontSize: 14, color: colors.text, textTransform: 'capitalize', fontWeight: '500' },
+  itemsList: { backgroundColor: colors.background, padding: 10, borderRadius: 8, marginTop: 12 },
+  itemText: { fontSize: 13, color: colors.text, marginBottom: 4 },
   date: { fontSize: 12, color: colors.textSecondary, fontStyle: 'italic', alignSelf: 'flex-end' },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
   emptyIcon: { fontSize: 60, marginBottom: 16, opacity: 0.8 },

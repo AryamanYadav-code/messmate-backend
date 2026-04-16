@@ -23,6 +23,7 @@ export default function OrderQueueScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [collectModal, setCollectModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [enteredCode, setEnteredCode] = useState('');
@@ -83,7 +84,14 @@ export default function OrderQueueScreen({ navigation }) {
   };
 
   const FILTERS = ['all', 'pending', 'approved', 'preparing', 'ready'];
-  const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+  const filtered = orders.filter(o => {
+    const matchesFilter = filter === 'all' || o.status === filter;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q || 
+      o.order_id.toString().includes(q) || 
+      (o.name && o.name.toLowerCase().includes(q));
+    return matchesFilter && matchesSearch;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -93,6 +101,16 @@ export default function OrderQueueScreen({ navigation }) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Queue</Text>
         <Text style={styles.orderCount}>{orders.length} orders</Text>
+      </View>
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, backgroundColor: colors.background }}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Order ID or Student Name..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
       <View style={styles.filterRow}>
@@ -161,6 +179,15 @@ export default function OrderQueueScreen({ navigation }) {
                     <Text style={styles.detailLabel}>Slot</Text>
                     <Text style={styles.detailValue}>{item.meal_slot}</Text>
                   </View>
+                  {item.items && item.items.length > 0 && (
+                    <View style={styles.itemsList}>
+                      {item.items.map((it, idx) => (
+                        <Text key={idx} style={styles.itemText}>
+                          • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
                   {item.special_note ? (
                     <View style={styles.detailRow}>
                        <Text style={styles.detailLabel}>Note</Text>
@@ -258,6 +285,7 @@ const getStyles = (colors) => StyleSheet.create({
   back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
   headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   orderCount: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.card },
   filterRow: { backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   filterBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.inputBg, marginRight: 8 },
   filterBtnActive: { backgroundColor: colors.primary },
@@ -281,6 +309,8 @@ const getStyles = (colors) => StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
   detailLabel: { fontSize: 13, color: colors.textSecondary },
   detailValue: { fontSize: 13, fontWeight: '600', color: colors.text },
+  itemsList: { backgroundColor: colors.background, padding: 10, borderRadius: 8, marginVertical: 4 },
+  itemText: { fontSize: 13, color: colors.text, marginBottom: 4 },
   actionBtn: { padding: 13, borderRadius: 12, alignItems: 'center', marginTop: 12 },
   actionBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },

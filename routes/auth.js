@@ -426,8 +426,21 @@ router.post('/change-password', async (req, res) => {
 router.post('/save-token', async (req, res) => {
   const { user_id, push_token } = req.body;
   try {
-    if (!user_id || !push_token) {
-      return res.status(400).json({ error: 'user_id and push_token are required' });
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' });
+    }
+
+    if (push_token === null) {
+      const result = await db.query(
+        'UPDATE users SET push_token = NULL WHERE user_id = $1 RETURNING user_id',
+        [user_id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
+      return res.json({ message: 'Notifications disabled (token removed)', userId: result.rows[0].user_id });
+    }
+
+    if (!push_token) {
+      return res.status(400).json({ error: 'push_token is required or must be null' });
     }
 
     const isExpoToken = /^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/.test(push_token);
