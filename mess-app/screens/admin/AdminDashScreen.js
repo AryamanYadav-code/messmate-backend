@@ -181,6 +181,17 @@ export default function AdminDashScreen({ navigation }) {
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ScheduledOrders')}>
+             <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+               <Text style={styles.actionIconText}>📅</Text>
+             </View>
+             <View style={styles.actionInfo}>
+               <Text style={styles.actionTitle}>Scheduled Orders</Text>
+               <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
+             </View>
+             <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
               <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
                 <Text style={styles.actionIconText}>📢</Text>

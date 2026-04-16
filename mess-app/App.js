@@ -27,6 +27,8 @@ import StaffScreen from './screens/admin/StaffScreen';
 import StudentOrderHistoryScreen from './screens/admin/StudentOrderHistoryScreen';
 import FeedbackScreen from './screens/student/FeedbackScreen';
 import FeedbackViewScreen from './screens/admin/FeedbackViewScreen';
+import ScheduleOrderScreen from './screens/student/ScheduleOrderScreen';
+import ScheduledOrdersScreen from './screens/admin/ScheduledOrdersScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
@@ -153,6 +155,8 @@ function MainNav() {
         <Stack.Screen name="StudentOrderHistory" component={StudentOrderHistoryScreen} />
         <Stack.Screen name="Feedback" component={FeedbackScreen} />
         <Stack.Screen name="FeedbackView" component={FeedbackViewScreen} />
+        <Stack.Screen name="ScheduleOrder" component={ScheduleOrderScreen} />
+        <Stack.Screen name="ScheduledOrders" component={ScheduledOrdersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

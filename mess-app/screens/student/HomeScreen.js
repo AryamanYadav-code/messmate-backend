@@ -117,6 +117,9 @@ useEffect(() => {
     <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Cart', { cart })}>
       <Text style={styles.headerBtnText}>Cart ({cart.reduce((a, c) => a + c.quantity, 0)})</Text>
     </TouchableOpacity>
+    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('ScheduleOrder')}>
+      <Text style={styles.headerBtnText}>📅 Pre-Order</Text>
+     </TouchableOpacity>
   </View>
 </View>
 

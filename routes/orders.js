@@ -44,6 +44,72 @@ router.post('/', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/', async (req, res) => {
+  const { user_id, items, total_amount, meal_slot, special_note, is_scheduled, scheduled_date } = req.body;
+  const pickup_code = generateCode();
+  try {
+    const result = await db.query(
+      `INSERT INTO orders 
+       (user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled, scheduled_date) 
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING order_id`,
+      [user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled || false, scheduled_date || null]
+    );
+    const order_id = result.rows[0].order_id;
+    for (const item of items) {
+      await db.query(
+        'INSERT INTO order_items (order_id, item_id, quantity, price_at_order, special_instruction) VALUES ($1,$2,$3,$4,$5)',
+        [order_id, item.item_id, item.quantity, item.price, item.special_instruction || '']
+      );
+    }
+    res.json({ message: 'Order placed!', order_id, pickup_code, is_scheduled: is_scheduled || false });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get scheduled orders for admin
+router.get('/admin/scheduled', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT o.*, u.name, u.email FROM orders o
+       JOIN users u ON o.user_id = u.user_id
+       WHERE o.is_scheduled = true
+       AND o.status = 'pending'
+       ORDER BY o.scheduled_date ASC, o.meal_slot ASC`
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Cancel scheduled order
+router.delete('/:order_id/cancel', async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM orders WHERE order_id = $1',
+      [req.params.order_id]
+    );
+    if (result.rows.length === 0)
+      return res.status(404).json({ error: 'Order not found' });
+
+    const order = result.rows[0];
+    if (!order.is_scheduled)
+      return res.status(400).json({ error: 'Only scheduled orders can be cancelled' });
+    if (order.status !== 'pending')
+      return res.status(400).json({ error: 'Order cannot be cancelled at this stage' });
+
+    // Refund wallet
+    await db.query(
+      'UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2',
+      [order.total_amount, order.user_id]
+    );
+    await db.query(
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method) VALUES ($1,$2,$3,$4)',
+      [order.user_id, order.total_amount, 'credit', 'refund']
+    );
+    await db.query('UPDATE orders SET status = $1 WHERE order_id = $2', ['rejected', req.params.order_id]);
+
+    res.json({ message: 'Order cancelled and refunded!' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/user/:user_id', async (req, res) => {
   try {
     const result = await db.query(
