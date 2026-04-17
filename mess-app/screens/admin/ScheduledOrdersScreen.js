@@ -112,6 +112,17 @@ export default function ScheduledOrdersScreen({ navigation }) {
                   </View>
                   <Text style={styles.amount}>₹{order.total_amount}</Text>
                 </View>
+
+                {order.items && order.items.length > 0 && (
+                  <View style={styles.itemsList}>
+                    {order.items.map((it, idx) => (
+                      <Text key={idx} style={styles.itemText}>
+                        • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={styles.rejectBtn}
@@ -159,6 +170,8 @@ const getStyles = (colors, isDark) => StyleSheet.create({
   studentName: { fontSize: 14, fontWeight: '600', color: colors.text },
   studentEmail: { fontSize: 12, color: colors.textSecondary },
   amount: { fontSize: 15, fontWeight: 'bold', color: colors.primary },
+  itemsList: { backgroundColor: isDark ? '#2A2A35' : '#F8F9FA', padding: 10, borderRadius: 8, marginBottom: 12 },
+  itemText: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
   approveBtn: { flex: 1, backgroundColor: colors.success, padding: 10, borderRadius: 10, alignItems: 'center' },
   approveBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
