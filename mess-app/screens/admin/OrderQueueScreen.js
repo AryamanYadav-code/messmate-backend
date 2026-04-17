@@ -55,6 +55,29 @@ export default function OrderQueueScreen({ navigation }) {
     } catch (err) { Alert.alert('Error', 'Could not update status'); }
   };
 
+  const rejectOrder = (order_id) => {
+    Alert.alert(
+      "Reject Order",
+      "Are you sure you want to reject this order? The wallet will be refunded.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Reject", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/orders/${order_id}/cancel`);
+              Alert.alert('Success', 'Order has been rejected and refunded');
+              fetchOrders();
+            } catch (err) {
+              Alert.alert('Error', err.response?.data?.error || 'Could not reject order');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const openCollectModal = (order) => {
     setSelectedOrder(order);
     setEnteredCode('');
@@ -203,13 +226,22 @@ export default function OrderQueueScreen({ navigation }) {
                 </View>
               </View>
 
-              {action && (
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: action.color }]}
-                  onPress={() => updateStatus(item.order_id, action.next)}>
-                  <Text style={styles.actionBtnText}>{action.label}</Text>
-                </TouchableOpacity>
-              )}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                {action && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: action.color, flex: 1, marginTop: 0 }]}
+                    onPress={() => updateStatus(item.order_id, action.next)}>
+                    <Text style={styles.actionBtnText}>{action.label}</Text>
+                  </TouchableOpacity>
+                )}
+                {item.status === 'pending' && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#F44336', flex: 1, marginTop: 0 }]}
+                    onPress={() => rejectOrder(item.order_id)}>
+                    <Text style={styles.actionBtnText}>Reject</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               {item.status === 'ready' && (
                 <TouchableOpacity

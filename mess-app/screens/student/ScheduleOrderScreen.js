@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 const MEAL_SLOTS = [
   { key: 'breakfast', label: 'Breakfast', time: '7:00 - 9:00 AM', icon: '🌅' },
@@ -11,6 +12,9 @@ const MEAL_SLOTS = [
 ];
 
 export default function ScheduleOrderScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+  
   const [selectedSlot, setSelectedSlot] = useState('lunch');
   const [menu, setMenu] = useState([]);
   const [cart, setCart] = useState([]);
@@ -172,39 +176,39 @@ export default function ScheduleOrderScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  dateBanner: { backgroundColor: '#6C63FF', paddingHorizontal: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+const getStyles = (colors, isDark) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
+  dateBanner: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   dateBannerIcon: { fontSize: 28 },
   dateBannerLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
-  dateBannerDate: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  slotsRow: { flexDirection: 'row', backgroundColor: '#fff', padding: 8, gap: 6 },
-  slotBtn: { flex: 1, alignItems: 'center', padding: 8, borderRadius: 10, backgroundColor: '#f5f5f5' },
-  slotBtnActive: { backgroundColor: '#6C63FF' },
+  dateBannerDate: { color: colors.headerText, fontSize: 16, fontWeight: 'bold' },
+  slotsRow: { flexDirection: 'row', backgroundColor: colors.card, padding: 8, gap: 6 },
+  slotBtn: { flex: 1, alignItems: 'center', padding: 8, borderRadius: 10, backgroundColor: colors.inputBg },
+  slotBtnActive: { backgroundColor: colors.primary },
   slotIcon: { fontSize: 18 },
-  slotLabel: { fontSize: 11, fontWeight: '600', color: '#555', marginTop: 2 },
+  slotLabel: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
   slotLabelActive: { color: '#fff' },
-  slotTime: { fontSize: 9, color: '#aaa', marginTop: 1, textAlign: 'center' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, elevation: 1 },
+  slotTime: { fontSize: 9, color: colors.divider, marginTop: 1, textAlign: 'center' },
+  card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, elevation: 1 },
   vegDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   itemInfo: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  itemDesc: { fontSize: 12, color: '#999', marginTop: 2 },
-  itemPrice: { fontSize: 14, color: '#6C63FF', fontWeight: 'bold', marginTop: 4 },
-  addBtn: { backgroundColor: '#6C63FF', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
+  itemName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  itemDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  itemPrice: { fontSize: 14, color: colors.primary, fontWeight: 'bold', marginTop: 4 },
+  addBtn: { backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
   addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6C63FF', borderRadius: 8, overflow: 'hidden' },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { padding: 7, paddingHorizontal: 10 },
   qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 13, paddingHorizontal: 4 },
-  empty: { textAlign: 'center', color: '#888', marginTop: 40 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 16, elevation: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 40 },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.card, padding: 16, elevation: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   footerInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  footerItems: { fontSize: 14, color: '#888' },
-  footerTotal: { fontSize: 16, fontWeight: 'bold', color: '#6C63FF' },
-  scheduleBtn: { backgroundColor: '#6C63FF', padding: 14, borderRadius: 12, alignItems: 'center' },
+  footerItems: { fontSize: 14, color: colors.textSecondary },
+  footerTotal: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+  scheduleBtn: { backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: 'center' },
   scheduleBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 }); 

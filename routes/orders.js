@@ -18,33 +18,6 @@ const VALID_ORDER_STATUSES = new Set([
 ]);
 
 router.post('/', async (req, res) => {
-  const { user_id, items, total_amount, meal_slot, special_note } = req.body;
-  if (!user_id || !Array.isArray(items) || items.length === 0 || total_amount == null || !meal_slot) {
-    return res.status(400).json({ error: 'Missing required order fields' });
-  }
-
-  if (!items.every(item => item?.item_id && Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0)) {
-    return res.status(400).json({ error: 'Invalid order items' });
-  }
-
-  const pickup_code = generateCode();
-  try {
-    const result = await db.query(
-      'INSERT INTO orders (user_id, total_amount, meal_slot, special_note, pickup_code) VALUES ($1,$2,$3,$4,$5) RETURNING order_id',
-      [user_id, total_amount, meal_slot, special_note, pickup_code]
-    );
-    const order_id = result.rows[0].order_id;
-    for (const item of items) {
-      await db.query(
-        'INSERT INTO order_items (order_id, item_id, quantity, price_at_order, special_instruction) VALUES ($1,$2,$3,$4,$5)',
-        [order_id, item.item_id, item.quantity, item.price, item.special_instruction || '']
-      );
-    }
-    res.json({ message: 'Order placed!', order_id, pickup_code });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.post('/', async (req, res) => {
   const { user_id, items, total_amount, meal_slot, special_note, is_scheduled, scheduled_date } = req.body;
   const pickup_code = generateCode();
   try {
@@ -90,8 +63,6 @@ router.delete('/:order_id/cancel', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
 
     const order = result.rows[0];
-    if (!order.is_scheduled)
-      return res.status(400).json({ error: 'Only scheduled orders can be cancelled' });
     if (order.status !== 'pending')
       return res.status(400).json({ error: 'Order cannot be cancelled at this stage' });
 
