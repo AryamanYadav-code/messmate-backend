@@ -7,9 +7,7 @@ const db = require('../config/db');
 const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-
-
+const auth = require('../middleware/auth');
 // Send OTP
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
@@ -105,16 +103,49 @@ router.post('/login', async (req, res) => {
     const result = await db.query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
     if (result.rows.length === 0) return res.status(400).json({ error: 'User not found' });
     const user = result.rows[0];
+
+    if (user.locked_until && new Date() < new Date(user.locked_until)) {
+      return res.status(403).json({ error: 'Account temporarily locked due to too many failed login attempts. Please try again later.' });
+    }
+
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(400).json({ error: 'Wrong password' });
+    if (!match) {
+      let failedAttempts = (user.failed_login_attempts || 0) + 1;
+      let lockedUntil = null;
+      if (failedAttempts >= 5) {
+        lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      await db.query('UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE user_id = $3', [failedAttempts, lockedUntil, user.user_id]);
+      
+      if (lockedUntil) {
+         return res.status(403).json({ error: 'Too many failed login attempts. Account locked for 15 minutes.' });
+      }
+      return res.status(400).json({ error: 'Wrong password' });
+    }
+
+    if (user.failed_login_attempts > 0 || user.locked_until) {
+      await db.query('UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE user_id = $1', [user.user_id]);
+    }
+
     if (!user.is_verified) {
       return res.status(400).json({ error: 'Account not verified. Please check your email for verification link.' });
     }
     if (user.is_active === false) {
       return res.status(403).json({ error: 'Your account has been deactivated. Please contact admin.' });
     }
+
+    const sessionRes = await db.query('INSERT INTO user_sessions (user_id) VALUES ($1) RETURNING session_id', [user.user_id]);
+    const sessionId = sessionRes.rows[0].session_id;
+
+    const activeSessions = await db.query('SELECT session_id FROM user_sessions WHERE user_id = $1 ORDER BY created_at ASC', [user.user_id]);
+    if (activeSessions.rows.length > 3) {
+      const excessCount = activeSessions.rows.length - 3;
+      const sessionIdsToDelete = activeSessions.rows.slice(0, excessCount).map(s => s.session_id);
+      await db.query('DELETE FROM user_sessions WHERE session_id = ANY($1::uuid[])', [sessionIdsToDelete]);
+    }
+
     const token = jwt.sign(
-      { userId: user.user_id, role: user.role, email: user.email },
+      { userId: user.user_id, role: user.role, email: user.email, sessionId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -165,8 +196,18 @@ router.post('/google', async (req, res) => {
       }
     }
 
+    const sessionRes = await db.query('INSERT INTO user_sessions (user_id) VALUES ($1) RETURNING session_id', [user.user_id]);
+    const sessionId = sessionRes.rows[0].session_id;
+
+    const activeSessions = await db.query('SELECT session_id FROM user_sessions WHERE user_id = $1 ORDER BY created_at ASC', [user.user_id]);
+    if (activeSessions.rows.length > 3) {
+      const excessCount = activeSessions.rows.length - 3;
+      const sessionIdsToDelete = activeSessions.rows.slice(0, excessCount).map(s => s.session_id);
+      await db.query('DELETE FROM user_sessions WHERE session_id = ANY($1::uuid[])', [sessionIdsToDelete]);
+    }
+
     const token = jwt.sign(
-      { userId: user.user_id, role: user.role, email: user.email },
+      { userId: user.user_id, role: user.role, email: user.email, sessionId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -175,6 +216,19 @@ router.post('/google', async (req, res) => {
   } catch (err) {
     console.error('Google Auth Error:', err);
     res.status(401).json({ error: 'Invalid Google Identity token' });
+  }
+});
+
+// ─── LOGOUT ─────────────────────────────────────────────────────────────
+router.post('/logout', auth, async (req, res) => {
+  try {
+    if (req.user && req.user.sessionId) {
+      await db.query('DELETE FROM user_sessions WHERE session_id = $1', [req.user.sessionId]);
+    }
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ error: 'Failed to logout' });
   }
 });
 

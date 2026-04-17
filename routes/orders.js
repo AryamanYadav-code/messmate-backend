@@ -133,7 +133,8 @@ router.get('/admin/pending', async (req, res) => {
          WHERE oi.order_id = o.order_id) as items
        FROM orders o
        JOIN users u ON o.user_id = u.user_id
-       WHERE o.status IN ('pending','approved','preparing','ready')
+       WHERE ((o.is_scheduled = false OR o.is_scheduled IS NULL) AND o.status IN ('pending','approved','preparing','ready'))
+          OR (o.is_scheduled = true AND o.status IN ('approved','preparing','ready') AND o.scheduled_date <= CURRENT_DATE)
        ORDER BY o.created_at ASC`
     );
     res.json(result.rows);

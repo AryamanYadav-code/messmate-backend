@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
@@ -12,6 +12,7 @@ export default function HomeScreen({ navigation }) {
   
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState('lunch');
+  const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
   const [name, setName] = useState('');
   const [ads, setAds] = useState([]);
@@ -133,6 +134,16 @@ useEffect(() => {
     </TouchableOpacity>
   ))}
 </View>
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search your favourite food..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
       {ads.length > 0 && (
   <View style={styles.adContainer}>
     <Image
@@ -199,7 +210,7 @@ useEffect(() => {
   </TouchableOpacity>
 )}
       <FlatList
-        data={menu}
+        data={menu.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))}
         keyExtractor={item => item.item_id.toString()}
         renderItem={({ item }) => {
   const cartItem = cart.find(c => c.item_id === item.item_id);
@@ -270,6 +281,9 @@ const getStyles = (colors) => StyleSheet.create({
   activeTab: { backgroundColor: colors.primary },
   tabText: { color: colors.textSecondary, fontWeight: '500', fontSize: 12, textAlign: 'center' },
   activeTabText: { color: colors.headerText },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.inputBg, marginHorizontal: 10, marginTop: 10, borderRadius: 12, paddingHorizontal: 12 },
+  searchIcon: { fontSize: 16, marginRight: 8 },
+  searchInput: { flex: 1, paddingVertical: 10, color: colors.text, fontSize: 14 },
   adContainer: { margin: 10, borderRadius: 14, overflow: 'hidden', height: 140, elevation: 3 },
   adImage: { width: '100%', height: '100%' },
   adOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.overlay, padding: 10 },

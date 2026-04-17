@@ -121,6 +121,7 @@ export default function SettingsScreen({ navigation }) {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Logout', style: 'destructive', onPress: async () => {
+        try { await api.post('/auth/logout'); } catch (err) { console.log(err); }
         await AsyncStorage.clear();
         navigation.replace('Login');
       }}

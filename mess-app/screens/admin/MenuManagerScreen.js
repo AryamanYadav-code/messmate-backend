@@ -9,6 +9,7 @@ export default function MenuManagerScreen({ navigation }) {
 
   const [items, setItems] = useState([]);
   const [category, setCategory] = useState('lunch');
+  const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -94,8 +95,19 @@ export default function MenuManagerScreen({ navigation }) {
         ))}
       </View>
 
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search items..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
       <FlatList
-        data={items}
+        data={items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))}
         keyExtractor={item => item.item_id.toString()}
         contentContainerStyle={{ padding: 12 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
@@ -204,6 +216,9 @@ const getStyles = (colors) => StyleSheet.create({
   catIcon: { fontSize: 18, marginBottom: 2 },
   catText: { fontSize: 11, color: colors.textSecondary, fontWeight: '500' },
   catTextActive: { color: '#fff' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.inputBg, marginHorizontal: 12, marginTop: 10, borderRadius: 12, paddingHorizontal: 12 },
+  searchIcon: { fontSize: 16, marginRight: 8 },
+  searchInput: { flex: 1, paddingVertical: 10, color: colors.text, fontSize: 14 },
   card: { backgroundColor: colors.card, borderRadius: 14, marginBottom: 10, overflow: 'hidden', elevation: 2, flexDirection: 'row', height: 90 },
   itemImage: { width: 90, height: '100%' },
   imagePlaceholder: { width: 90, height: '100%', backgroundColor: colors.inputBg, justifyContent: 'center', alignItems: 'center' },
