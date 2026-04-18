@@ -29,6 +29,7 @@ import FeedbackScreen from './screens/student/FeedbackScreen';
 import FeedbackViewScreen from './screens/admin/FeedbackViewScreen';
 import ScheduleOrderScreen from './screens/student/ScheduleOrderScreen';
 import ScheduledOrdersScreen from './screens/admin/ScheduledOrdersScreen';
+import AnalyticsScreen from './screens/admin/AnalyticsScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
@@ -157,6 +158,7 @@ function MainNav() {
         <Stack.Screen name="FeedbackView" component={FeedbackViewScreen} />
         <Stack.Screen name="ScheduleOrder" component={ScheduleOrderScreen} />
         <Stack.Screen name="ScheduledOrders" component={ScheduledOrdersScreen} />
+        <Stack.Screen name="Analytics" component={AnalyticsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

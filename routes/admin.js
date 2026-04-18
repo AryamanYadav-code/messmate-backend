@@ -254,4 +254,107 @@ router.delete('/staff/:id', verifySuperAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Full analytics
+router.get('/analytics', async (req, res) => {
+  try {
+    // Revenue by day (last 7 days)
+    const revenueByDay = await db.query(`
+      SELECT 
+        DATE(created_at) as date,
+        SUM(total_amount) as revenue,
+        COUNT(*) as order_count
+      FROM orders
+      WHERE status IN ('delivered', 'ready')
+      AND created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `);
+
+    // Most ordered items
+    const topItems = await db.query(`
+      SELECT 
+        m.name,
+        m.category,
+        m.is_veg,
+        SUM(oi.quantity) as total_ordered,
+        SUM(oi.quantity * oi.price_at_order) as total_revenue
+      FROM order_items oi
+      JOIN menu_items m ON oi.item_id = m.item_id
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE o.status IN ('delivered', 'ready')
+      GROUP BY m.item_id, m.name, m.category, m.is_veg
+      ORDER BY total_ordered DESC
+      LIMIT 5
+    `);
+
+    // Orders by meal slot
+    const bySlot = await db.query(`
+      SELECT 
+        meal_slot,
+        COUNT(*) as count,
+        SUM(total_amount) as revenue
+      FROM orders
+      WHERE status IN ('delivered', 'ready')
+      GROUP BY meal_slot
+    `);
+
+    // Orders by hour
+    const byHour = await db.query(`
+      SELECT 
+        EXTRACT(HOUR FROM created_at) as hour,
+        COUNT(*) as count
+      FROM orders
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+
+    // Average rating
+    const avgRating = await db.query(`
+      SELECT 
+        AVG(rating) as avg_rating,
+        COUNT(*) as total_reviews
+      FROM feedback
+    `);
+
+    // Rating distribution
+    const ratingDist = await db.query(`
+      SELECT 
+        rating,
+        COUNT(*) as count
+      FROM feedback
+      GROUP BY rating
+      ORDER BY rating DESC
+    `);
+
+    // Total stats
+    const totalStats = await db.query(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status IN ('delivered','ready') THEN total_amount ELSE 0 END) as total_revenue,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_orders,
+        COUNT(CASE WHEN is_scheduled = true THEN 1 END) as scheduled_orders
+      FROM orders
+    `);
+
+    // New students this week
+    const newStudents = await db.query(`
+      SELECT COUNT(*) as count
+      FROM users
+      WHERE role = 'student'
+      AND created_at >= NOW() - INTERVAL '7 days'
+    `);
+
+    res.json({
+      revenueByDay: revenueByDay.rows,
+      topItems: topItems.rows,
+      bySlot: bySlot.rows,
+      byHour: byHour.rows,
+      avgRating: avgRating.rows[0],
+      ratingDist: ratingDist.rows,
+      totalStats: totalStats.rows[0],
+      newStudents: newStudents.rows[0].count
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

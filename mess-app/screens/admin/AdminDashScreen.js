@@ -235,6 +235,17 @@ export default function AdminDashScreen({ navigation }) {
               </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Analytics')}>
+             <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Text style={styles.actionIconText}>📊</Text>
+            </View>
+            <View style={styles.actionInfo}>
+             <Text style={styles.actionTitle}>Analytics Dashboard</Text>
+             <Text style={styles.actionSub}>Revenue, orders and insights</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+           </TouchableOpacity>
           </>
         )}
       </ScrollView>
