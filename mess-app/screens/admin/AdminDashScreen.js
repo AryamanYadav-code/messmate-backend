@@ -9,7 +9,7 @@ export default function AdminDashScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
-  const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0 });
+  const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0, scheduled_count: 0 });
   const [pendingCount, setPendingCount] = useState(0);
   const [userRole, setUserRole] = useState('');
   const isSuperAdmin = userRole === 'superadmin';
@@ -48,6 +48,7 @@ export default function AdminDashScreen({ navigation }) {
           total_orders: res.data?.total_orders || 0,
           total_users: res.data?.total_users || 0,
           revenue: res.data?.revenue || 0,
+          scheduled_count: res.data?.scheduled_count || 0,
         });
       }
     } catch (err) { console.log(err); }
@@ -187,15 +188,20 @@ export default function AdminDashScreen({ navigation }) {
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ScheduledOrders')}>
-             <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-               <Text style={styles.actionIconText}>📅</Text>
-             </View>
-             <View style={styles.actionInfo}>
-               <Text style={styles.actionTitle}>Scheduled Orders</Text>
-               <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
-             </View>
-             <Text style={styles.arrow}>›</Text>
+            <TouchableOpacity style={[styles.actionCard, stats.scheduled_count > 0 && { borderColor: '#FF9800', borderWidth: 1 }]} onPress={() => navigation.navigate('ScheduledOrders')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Text style={styles.actionIconText}>📅</Text>
+              </View>
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle}>Scheduled Orders</Text>
+                <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
+              </View>
+              {stats.scheduled_count > 0 && (
+                <View style={[styles.badge, { backgroundColor: '#FF9800' }]}>
+                  <Text style={styles.badgeText}>{stats.scheduled_count}</Text>
+                </View>
+              )}
+              <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>

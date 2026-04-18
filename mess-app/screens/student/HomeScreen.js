@@ -40,10 +40,35 @@ const fetchActiveOrder = async () => {
   try {
     const id = await AsyncStorage.getItem('user_id');
     const res = await api.get(`/orders/user/${id}`);
-    const pending = res.data.find(o => 
-      ['pending','approved','preparing','ready'].includes(o.status)
-    );
-    setActiveOrder(pending || null);
+    const activeStates = ['pending', 'approved', 'preparing', 'ready'];
+    const active = res.data.filter(o => activeStates.includes(o.status));
+
+    if (active.length > 0) {
+      // Sort: Ready (1) > Preparing (2) > Approved (3) > Pending (4)
+      const PRIORITY = { ready: 1, preparing: 2, approved: 3, pending: 4 };
+      const today = new Date().toISOString().split('T')[0];
+      
+      const sorted = active.sort((a, b) => {
+        // First priority: Orders for Today vs Future
+        const aIsToday = !a.is_scheduled || a.scheduled_date?.split('T')[0] === today;
+        const bIsToday = !b.is_scheduled || b.scheduled_date?.split('T')[0] === today;
+        
+        if (aIsToday && !bIsToday) return -1;
+        if (!aIsToday && bIsToday) return 1;
+
+        // Second priority: Status
+        if (PRIORITY[a.status] !== PRIORITY[b.status]) {
+          return PRIORITY[a.status] - PRIORITY[b.status];
+        }
+
+        // Third priority: Recency (Newest first)
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
+      setActiveOrder(sorted[0]);
+    } else {
+      setActiveOrder(null);
+    }
   } catch (err) { console.log(err); }
 };
 

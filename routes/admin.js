@@ -76,10 +76,13 @@ router.get('/stats', async (req, res) => {
     const orders = await db.query('SELECT COUNT(*) as total_orders FROM orders');
     const users = await db.query('SELECT COUNT(*) as total_users FROM users WHERE role = $1', ['student']);
     const revenue = await db.query('SELECT SUM(total_amount) as revenue FROM orders WHERE status IN ($1,$2)', ['delivered', 'ready']);
+    const scheduled = await db.query('SELECT COUNT(*) as scheduled_count FROM orders WHERE is_scheduled = true AND status = $1', ['pending']);
+    
     res.json({
       total_orders: orders.rows[0].total_orders,
       total_users: users.rows[0].total_users,
-      revenue: revenue.rows[0].revenue || 0
+      revenue: revenue.rows[0].revenue || 0,
+      scheduled_count: scheduled.rows[0].scheduled_count || 0
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
