@@ -11,6 +11,7 @@ import WalletScreen from './screens/student/WalletScreen';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
+import SplashScreen from './screens/auth/SplashScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
 import ForgotPasswordScreen from './screens/auth/ForgotPasswordScreen';
@@ -48,7 +49,6 @@ Notifications.setNotificationHandler({
 const Stack = createNativeStackNavigator();
 
 function MainNav() {
-  const [initialRoute, setInitialRoute] = useState(null);
   const { isDark } = useTheme();
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
@@ -66,7 +66,6 @@ function MainNav() {
     }
 
     setupNotifications();
-    checkLogin();
 
     // Silent Push Token Sync on startup
     const syncTokenOnStartup = async () => {
@@ -108,33 +107,12 @@ function MainNav() {
     };
   }, []);
 
-  const checkLogin = async () => {
-    const token = await AsyncStorage.getItem('token');
-    const role = await AsyncStorage.getItem('role');
-    const userId = await AsyncStorage.getItem('user_id');
-    if (!token) {
-      setInitialRoute('Login');
-    } else if (role === 'admin' || role === 'superadmin') {
-      setInitialRoute('AdminDash');
-      savePushToken(userId);
-    } else {
-      setInitialRoute('Home');
-      savePushToken(userId);
-    }
-  };
   
-
-  if (!initialRoute) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
-    );
-  }
 
   return (
     <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
-      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
