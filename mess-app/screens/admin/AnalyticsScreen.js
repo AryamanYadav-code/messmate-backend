@@ -2,22 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Dimensions, RefreshControl } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const chartWidth = width - 32;
 
-const chartConfig = {
-  backgroundColor: '#fff',
-  backgroundGradientFrom: '#fff',
-  backgroundGradientTo: '#fff',
+const getChartConfig = (colors, isDark) => ({
+  backgroundColor: colors.card,
+  backgroundGradientFrom: colors.card,
+  backgroundGradientTo: colors.card,
   decimalPlaces: 0,
   color: (opacity = 1) => `rgba(108, 99, 255, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(100, 100, 100, ${opacity})`,
+  labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(100, 100, 100, ${opacity})`,
   style: { borderRadius: 16 },
-  propsForDots: { r: '4', strokeWidth: '2', stroke: '#6C63FF' }
-};
+  propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
+  propsForBackgroundLines: { stroke: colors.border }
+});
 
 export default function AnalyticsScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors);
+  const chartConfig = getChartConfig(colors, isDark);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,7 +83,7 @@ export default function AnalyticsScreen({ navigation }) {
     name: s.meal_slot,
     population: parseInt(s.count),
     color: SLOT_COLORS[s.meal_slot] || '#888',
-    legendFontColor: '#333',
+    legendFontColor: colors.text,
     legendFontSize: 12
   })) || [];
 
@@ -93,7 +99,7 @@ export default function AnalyticsScreen({ navigation }) {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}> 
 
         {/* Summary Cards */}
         <View style={styles.statsGrid}>
@@ -218,43 +224,43 @@ export default function AnalyticsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#6C63FF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
+  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, color: '#888' },
+  loadingText: { fontSize: 16, color: colors.textSecondary },
   content: { padding: 16, paddingBottom: 40 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  statCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, width: '47%', elevation: 2 },
-  statNum: { fontSize: 22, fontWeight: 'bold', color: '#6C63FF' },
+  statCard: { backgroundColor: colors.card, borderRadius: 12, padding: 14, width: '47%', elevation: 2 },
+  statNum: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   statNumWhite: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 12, color: '#888', marginTop: 2 },
+  statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   statLabelWhite: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  ratingCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, flexDirection: 'row', gap: 16, elevation: 2 },
+  ratingCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, marginBottom: 14, flexDirection: 'row', gap: 16, elevation: 2 },
   ratingLeft: { alignItems: 'center', justifyContent: 'center', minWidth: 70 },
-  ratingNum: { fontSize: 36, fontWeight: 'bold', color: '#FFD700' },
-  ratingStars: { fontSize: 14, color: '#FFD700' },
-  ratingTotal: { fontSize: 11, color: '#888', marginTop: 4 },
+  ratingNum: { fontSize: 36, fontWeight: 'bold', color: colors.warning },
+  ratingStars: { fontSize: 14, color: colors.warning },
+  ratingTotal: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
   ratingBars: { flex: 1, justifyContent: 'center', gap: 4 },
   ratingBarRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ratingBarLabel: { fontSize: 11, color: '#888', width: 20 },
-  ratingBarBg: { flex: 1, height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' },
-  ratingBarFill: { height: '100%', backgroundColor: '#FFD700', borderRadius: 3 },
-  ratingBarCount: { fontSize: 11, color: '#888', width: 20, textAlign: 'right' },
-  chartCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2 },
-  chartTitle: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  ratingBarLabel: { fontSize: 11, color: colors.textSecondary, width: 20 },
+  ratingBarBg: { flex: 1, height: 6, backgroundColor: colors.tabBackground, borderRadius: 3, overflow: 'hidden' },
+  ratingBarFill: { height: '100%', backgroundColor: colors.warning, borderRadius: 3 },
+  ratingBarCount: { fontSize: 11, color: colors.textSecondary, width: 20, textAlign: 'right' },
+  chartCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2 },
+  chartTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
   chart: { borderRadius: 10 },
-  topItemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
-  topItemRank: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#EEF', justifyContent: 'center', alignItems: 'center' },
-  topItemRankText: { color: '#6C63FF', fontWeight: 'bold', fontSize: 13 },
+  topItemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.divider },
+  topItemRank: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
+  topItemRankText: { color: colors.primary, fontWeight: 'bold', fontSize: 13 },
   vegDot: { width: 8, height: 8, borderRadius: 4 },
   topItemInfo: { flex: 1 },
-  topItemName: { fontSize: 14, fontWeight: '600', color: '#333' },
-  topItemCategory: { fontSize: 11, color: '#888', marginTop: 1, textTransform: 'capitalize' },
+  topItemName: { fontSize: 14, fontWeight: '600', color: colors.text },
+  topItemCategory: { fontSize: 11, color: colors.textSecondary, marginTop: 1, textTransform: 'capitalize' },
   topItemStats: { alignItems: 'flex-end' },
-  topItemCount: { fontSize: 13, fontWeight: 'bold', color: '#6C63FF' },
-  topItemRevenue: { fontSize: 11, color: '#888', marginTop: 2 },
-  noData: { textAlign: 'center', color: '#888', padding: 20 },
-}); 
+  topItemCount: { fontSize: 13, fontWeight: 'bold', color: colors.primary },
+  topItemRevenue: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  noData: { textAlign: 'center', color: colors.textSecondary, padding: 20 },
+});

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl } from 'react-native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 const STATUS_COLORS = {
   delivered: '#4CAF50',
@@ -46,7 +47,30 @@ export default function AdminOrderHistoryScreen({ navigation }) {
       </View>
 
       {loading ? (
-        <Text style={styles.loading}>Loading...</Text>
+        <View style={{ padding: 12 }}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <View key={i} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Skeleton width={100} height={20} />
+                  <Skeleton width={80} height={14} style={{ marginTop: 5 }} />
+                </View>
+                <Skeleton width={80} height={20} borderRadius={12} />
+              </View>
+              <View style={styles.cardBody}>
+                <View style={styles.detailBox}>
+                  <Skeleton width={50} height={12} />
+                  <Skeleton width={60} height={18} style={{ marginTop: 5 }} />
+                </View>
+                <View style={styles.detailBox}>
+                  <Skeleton width={40} height={12} />
+                  <Skeleton width={50} height={16} style={{ marginTop: 5 }} />
+                </View>
+              </View>
+              <Skeleton width={100} height={12} style={{ alignSelf: 'flex-end' }} />
+            </View>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={orders}
@@ -64,7 +88,7 @@ export default function AdminOrderHistoryScreen({ navigation }) {
                   <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
                 </View>
               </View>
-              
+
               <View style={styles.cardBody}>
                 <View style={styles.detailBox}>
                    <Text style={styles.detailLabel}>Amount</Text>

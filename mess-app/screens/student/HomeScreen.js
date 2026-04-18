@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
@@ -18,6 +19,7 @@ export default function HomeScreen({ navigation }) {
   const [ads, setAds] = useState([]);
   const [currentAd, setCurrentAd] = useState(0);
   const [unratedOrder, setUnratedOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
 
 
@@ -91,9 +93,18 @@ useEffect(() => {
 }, [category]);
 
 useEffect(() => {
-  fetchActiveOrder();
-  fetchAds();
-  fetchUnratedOrder();
+  const init = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchMenu(category),
+      fetchActiveOrder(),
+      fetchAds(),
+      fetchUnratedOrder()
+    ]);
+    setLoading(false);
+  };
+  init();
+
   const orderInterval = setInterval(() => {
     fetchActiveOrder();
     fetchUnratedOrder();
@@ -120,174 +131,207 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
-     <View style={styles.header}>
-  <View style={styles.headerTop}>
-    <Text style={styles.greeting}>Hi, {name}!</Text>
-    <TouchableOpacity onPress={async () => {
-      await AsyncStorage.clear();
-      navigation.replace('Login');
-    }}>
-      <Text style={styles.logoutText}>Logout</Text>
-    </TouchableOpacity>
-  </View>
-  <View style={styles.headerBottom}>
-    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Settings')}>
-      <Text style={styles.headerBtnText}>⚙️</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Wallet')}>
-      <Text style={styles.headerBtnText}>Wallet</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('OrderHistory')}>
-      <Text style={styles.headerBtnText}>History</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Cart', { cart })}>
-      <Text style={styles.headerBtnText}>Cart ({cart.reduce((a, c) => a + c.quantity, 0)})</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('ScheduleOrder')}>
-      <Text style={styles.headerBtnText}>📅 Pre-Order</Text>
-     </TouchableOpacity>
-  </View>
-</View>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Text style={styles.greeting}>Hi, {name}!</Text>
+          <TouchableOpacity onPress={async () => {
+            await AsyncStorage.clear();
+            navigation.replace('Login');
+          }}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.headerBottom}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Settings')}>
+            <Text style={styles.headerBtnText}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Wallet')}>
+            <Text style={styles.headerBtnText}>Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('OrderHistory')}>
+            <Text style={styles.headerBtnText}>History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Cart', { cart })}>
+            <Text style={styles.headerBtnText}>Cart ({cart.reduce((a, c) => a + c.quantity, 0)})</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('ScheduleOrder')}>
+            <Text style={styles.headerBtnText}>📅 Pre-Order</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      <View style={styles.tabs}>
-  {CATEGORIES.map(cat => (
-    <TouchableOpacity key={cat} style={[styles.tab, category === cat && styles.activeTab]}
-      onPress={() => setCategory(cat)}>
-      <Text style={[styles.tabText, category === cat && styles.activeTabText]}>
-        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</View>
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search your favourite food..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-      {ads.length > 0 && (
-  <View style={styles.adContainer}>
-    <Image
-      source={{ uri: ads[currentAd]?.image_url }}
-      style={styles.adImage}
-      resizeMode="cover"
-    />
-    <View style={styles.adOverlay}>
-      <Text style={styles.adTitle}>{ads[currentAd]?.title}</Text>
-    </View>
-    <View style={styles.adDots}>
-      {ads.map((_, i) => (
-        <View key={i} style={[styles.dot, i === currentAd && styles.dotActive]}/>
-      ))}
-    </View>
-  </View>
-)}
-      {activeOrder && (
-  <TouchableOpacity
-    style={[styles.activeOrderBanner, 
-      activeOrder.status === 'ready' && styles.activeOrderReady]}
-    onPress={() => navigation.navigate('OrderTrack', { order_id: activeOrder.order_id })}>
-    <View style={styles.activeOrderLeft}>
-      <View style={styles.activeOrderIconBox}>
-        <Text style={styles.activeOrderIcon}>
-          {activeOrder.status === 'pending' ? '⏳' :
-           activeOrder.status === 'approved' ? '✅' :
-           activeOrder.status === 'preparing' ? '👨‍🍳' : '🎉'}
-        </Text>
-      </View>
-      <View>
-        <Text style={styles.activeOrderTitle}>Order #{activeOrder.order_id}</Text>
-        <Text style={styles.activeOrderStatus}>
-          {activeOrder.status === 'pending' ? 'Waiting for approval...' :
-           activeOrder.status === 'approved' ? 'Order approved!' :
-           activeOrder.status === 'preparing' ? 'Being prepared...' :
-           'Ready for pickup!'}
-        </Text>
-      </View>
-    </View>
-    <View style={styles.activeOrderRight}>
-      {activeOrder.status === 'ready' && (
-        <Text style={styles.pickupCodeHint}>View Code →</Text>
-      )}
-      <Text style={styles.activeOrderAmount}>₹{activeOrder.total_amount}</Text>
-    </View>
-  </TouchableOpacity>
-)}
-{unratedOrder && (
-  <TouchableOpacity
-    style={styles.ratingBanner}
-    onPress={() => navigation.navigate('Feedback', {
-      order_id: unratedOrder.order_id,
-      total_amount: unratedOrder.total_amount
-    })}>
-    <View style={styles.ratingBannerLeft}>
-      <Text style={styles.ratingBannerIcon}>⭐</Text>
-      <View>
-        <Text style={styles.ratingBannerTitle}>How was your meal?</Text>
-        <Text style={styles.ratingBannerSub}>Rate Order #{unratedOrder.order_id}</Text>
-      </View>
-    </View>
-    <Text style={styles.ratingBannerArrow}>›</Text>
-  </TouchableOpacity>
-)}
-      <FlatList
-        data={menu.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))}
-        keyExtractor={item => item.item_id.toString()}
-        renderItem={({ item }) => {
-  const cartItem = cart.find(c => c.item_id === item.item_id);
-  return (
-    <View style={styles.card}>
-      {item.image_url ? (
-        <Image
-          source={{ uri: item.image_url }}
-          style={styles.itemImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.itemImagePlaceholder}>
-          <Text style={styles.itemImagePlaceholderText}>🍽</Text>
-        </View>
-      )}
-      <View style={styles.cardContent}>
-        <View style={styles.cardTop}>
-          <View style={[styles.vegDot, { backgroundColor: item.is_veg ? '#4CAF50' : '#f44336' }]}/>
-          <Text style={styles.itemName}>{item.name}</Text>
-        </View>
-        <Text style={styles.itemDesc} numberOfLines={1}>{item.description}</Text>
-        <View style={styles.cardBottom}>
-          <Text style={styles.itemPrice}>₹{item.price}</Text>
-          {cartItem ? (
-            <View style={styles.qtyControl}>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => {
-                if (cartItem.quantity === 1) {
-                  setCart(cart.filter(c => c.item_id !== item.item_id));
-                } else {
-                  setCart(cart.map(c => c.item_id === item.item_id ? { ...c, quantity: c.quantity - 1 } : c));
-                }
-              }}>
-                <Text style={styles.qtyBtnText}>−</Text>
-              </TouchableOpacity>
-              <Text style={styles.qtyNum}>{cartItem.quantity}</Text>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => addToCart(item)}>
-                <Text style={styles.qtyBtnText}>+</Text>
-              </TouchableOpacity>
+      {loading ? (
+        <View style={{ flex: 1 }}>
+          <View style={styles.tabs}>
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} width={70} height={35} borderRadius={12} style={{ marginHorizontal: 4 }} />)}
+          </View>
+          <View style={styles.searchContainer}>
+            <Skeleton width="100%" height={40} borderRadius={12} />
+          </View>
+          <View style={styles.adContainer}>
+            <Skeleton width="100%" height={140} borderRadius={14} />
+          </View>
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.card, { height: 100, marginBottom: 8 }]}>
+              <Skeleton width={100} height="100%" borderRadius={0} />
+              <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+                <Skeleton width="60%" height={15} />
+                <Skeleton width="40%" height={12} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Skeleton width={40} height={15} />
+                  <Skeleton width={60} height={30} borderRadius={8} />
+                </View>
+              </View>
             </View>
-          ) : (
-            <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item)}>
-              <Text style={styles.addBtnText}>ADD</Text>
+          ))}
+        </View>
+      ) : (
+        <>
+          <View style={styles.tabs}>
+            {CATEGORIES.map(cat => (
+              <TouchableOpacity key={cat} style={[styles.tab, category === cat && styles.activeTab]}
+                onPress={() => setCategory(cat)}>
+                <Text style={[styles.tabText, category === cat && styles.activeTabText]}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search your favourite food..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          {ads.length > 0 && (
+            <View style={styles.adContainer}>
+              <Image
+                source={{ uri: ads[currentAd]?.image_url }}
+                style={styles.adImage}
+                resizeMode="cover"
+              />
+              <View style={styles.adOverlay}>
+                <Text style={styles.adTitle}>{ads[currentAd]?.title}</Text>
+              </View>
+              <View style={styles.adDots}>
+                {ads.map((_, i) => (
+                  <View key={i} style={[styles.dot, i === currentAd && styles.dotActive]} />
+                ))}
+              </View>
+            </View>
+          )}
+
+          {activeOrder && (
+            <TouchableOpacity
+              style={[styles.activeOrderBanner,
+              activeOrder.status === 'ready' && styles.activeOrderReady]}
+              onPress={() => navigation.navigate('OrderTrack', { order_id: activeOrder.order_id })}>
+              <View style={styles.activeOrderLeft}>
+                <View style={styles.activeOrderIconBox}>
+                  <Text style={styles.activeOrderIcon}>
+                    {activeOrder.status === 'pending' ? '⏳' :
+                      activeOrder.status === 'approved' ? '✅' :
+                        activeOrder.status === 'preparing' ? '👨‍🍳' : '🎉'}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.activeOrderTitle}>Order #{activeOrder.order_id}</Text>
+                  <Text style={styles.activeOrderStatus}>
+                    {activeOrder.status === 'pending' ? 'Waiting for approval...' :
+                      activeOrder.status === 'approved' ? 'Order approved!' :
+                        activeOrder.status === 'preparing' ? 'Being prepared...' :
+                          'Ready for pickup!'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.activeOrderRight}>
+                {activeOrder.status === 'ready' && (
+                  <Text style={styles.pickupCodeHint}>View Code →</Text>
+                )}
+                <Text style={styles.activeOrderAmount}>₹{activeOrder.total_amount}</Text>
+              </View>
             </TouchableOpacity>
           )}
-        </View>
-      </View>
-    </View>
-  );
-}}
-        ListEmptyComponent={<Text style={styles.empty}>No items available</Text>}
-      />
+
+          {unratedOrder && (
+            <TouchableOpacity
+              style={styles.ratingBanner}
+              onPress={() => navigation.navigate('Feedback', {
+                order_id: unratedOrder.order_id,
+                total_amount: unratedOrder.total_amount
+              })}>
+              <View style={styles.ratingBannerLeft}>
+                <Text style={styles.ratingBannerIcon}>⭐</Text>
+                <View>
+                  <Text style={styles.ratingBannerTitle}>How was your meal?</Text>
+                  <Text style={styles.ratingBannerSub}>Rate Order #{unratedOrder.order_id}</Text>
+                </View>
+              </View>
+              <Text style={styles.ratingBannerArrow}>›</Text>
+            </TouchableOpacity>
+          )}
+
+          <FlatList
+            data={menu.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))}
+            keyExtractor={item => item.item_id.toString()}
+            renderItem={({ item }) => {
+              const cartItem = cart.find(c => c.item_id === item.item_id);
+              return (
+                <View style={styles.card}>
+                  {item.image_url ? (
+                    <Image
+                      source={{ uri: item.image_url }}
+                      style={styles.itemImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.itemImagePlaceholder}>
+                      <Text style={styles.itemImagePlaceholderText}>🍽</Text>
+                    </View>
+                  )}
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardTop}>
+                      <View style={[styles.vegDot, { backgroundColor: item.is_veg ? '#4CAF50' : '#f44336' }]} />
+                      <Text style={styles.itemName}>{item.name}</Text>
+                    </View>
+                    <Text style={styles.itemDesc} numberOfLines={1}>{item.description}</Text>
+                    <View style={styles.cardBottom}>
+                      <Text style={styles.itemPrice}>₹{item.price}</Text>
+                      {cartItem ? (
+                        <View style={styles.qtyControl}>
+                          <TouchableOpacity style={styles.qtyBtn} onPress={() => {
+                            if (cartItem.quantity === 1) {
+                              setCart(cart.filter(c => c.item_id !== item.item_id));
+                            } else {
+                              setCart(cart.map(c => c.item_id === item.item_id ? { ...c, quantity: c.quantity - 1 } : c));
+                            }
+                          }}>
+                            <Text style={styles.qtyBtnText}>−</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.qtyNum}>{cartItem.quantity}</Text>
+                          <TouchableOpacity style={styles.qtyBtn} onPress={() => addToCart(item)}>
+                            <Text style={styles.qtyBtnText}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item)}>
+                          <Text style={styles.addBtnText}>ADD</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+            ListEmptyComponent={<Text style={styles.empty}>No items available</Text>}
+          />
+        </>
+      )}
     </View>
   );
 }

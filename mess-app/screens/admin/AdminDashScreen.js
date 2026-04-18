@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 export default function AdminDashScreen({ navigation }) {
   const { colors } = useTheme();
@@ -12,6 +13,7 @@ export default function AdminDashScreen({ navigation }) {
   const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0, scheduled_count: 0 });
   const [pendingCount, setPendingCount] = useState(0);
   const [userRole, setUserRole] = useState('');
+  const [loading, setLoading] = useState(true);
   const isSuperAdmin = userRole === 'superadmin';
   const mountedRef = useRef(false);
 
@@ -28,8 +30,13 @@ export default function AdminDashScreen({ navigation }) {
   }, []);
 
   useFocusEffect(useCallback(() => {
-    fetchStats();
-    fetchPending();
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchStats(), fetchPending()]);
+      setLoading(false);
+    };
+    init();
+
     const interval = setInterval(() => {
       fetchStats();
       fetchPending();
@@ -94,158 +101,184 @@ export default function AdminDashScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: '#6C63FF' }]}>
-            <Text style={styles.statIcon}>📦</Text>
-            <Text style={styles.statNumWhite}>{stats.total_orders}</Text>
-            <Text style={styles.statLabelWhite}>Total Orders</Text>
-          </View>
-
-          {isSuperAdmin && (
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>🎓</Text>
-              <Text style={styles.statNum}>{stats.total_users}</Text>
-              <Text style={styles.statLabel}>Students</Text>
-            </View>
-          )}
-
-          {isSuperAdmin && (
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>💰</Text>
-              <Text style={styles.statNum}>₹{stats.revenue || 0}</Text>
-              <Text style={styles.statLabel}>Revenue</Text>
-            </View>
-          )}
-
-          <View style={[styles.statCard, pendingCount > 0 && { borderColor: '#FF9800', borderWidth: 2 }]}>
-            <Text style={styles.statIcon}>⏳</Text>
-            <Text style={[styles.statNum, pendingCount > 0 && { color: '#FF9800' }]}>{pendingCount}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-        <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('OrderQueue')}>
-          <View style={[styles.actionIcon, { backgroundColor: '#EEF' }]}>
-            <Text style={styles.actionIconText}>📋</Text>
-          </View>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Order Queue</Text>
-            <Text style={styles.actionSub}>Approve and manage orders</Text>
-          </View>
-          {pendingCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingCount}</Text>
-            </View>
-          )}
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MenuManager')}>
-          <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-            <Text style={styles.actionIconText}>🍽</Text>
-          </View>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Menu Manager</Text>
-            <Text style={styles.actionSub}>Add or remove menu items</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdminOrderHistory')}>
-          <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
-            <Text style={styles.actionIconText}>📜</Text>
-          </View>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Order History</Text>
-            <Text style={styles.actionSub}>View past orders & earnings</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Settings')}>
-          <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-            <Text style={styles.actionIconText}>⚙️</Text>
-          </View>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Account Settings</Text>
-            <Text style={styles.actionSub}>Manage password & theme</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        {isSuperAdmin && (
+        {loading ? (
           <>
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Text style={styles.actionIconText}>🎓</Text>
+            <View style={styles.statsGrid}>
+              {[1, 2, 3].map(i => (
+                <View key={i} style={styles.statCard}>
+                   <Skeleton width={30} height={30} borderRadius={15} />
+                   <Skeleton width="60%" height={20} style={{ marginVertical: 8 }} />
+                   <Skeleton width="40%" height={12} />
+                </View>
+              ))}
+            </View>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            {[1, 2, 3, 4, 5].map(i => (
+              <View key={i} style={[styles.actionCard, { paddingVertical: 12 }]}>
+                 <Skeleton width={40} height={40} borderRadius={8} />
+                 <View style={{ flex: 1, marginLeft: 15 }}>
+                    <Skeleton width="50%" height={16} />
+                    <Skeleton width="80%" height={12} style={{ marginTop: 8 }} />
+                 </View>
               </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Student Management</Text>
-                <Text style={styles.actionSub}>View and manage student accounts</Text>
+            ))}
+          </>
+        ) : (
+          <>
+            <View style={styles.statsGrid}>
+              <View style={[styles.statCard, { backgroundColor: '#6C63FF' }]}>
+                <Text style={styles.statIcon}>📦</Text>
+                <Text style={styles.statNumWhite}>{stats.total_orders}</Text>
+                <Text style={styles.statLabelWhite}>Total Orders</Text>
               </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.actionCard, stats.scheduled_count > 0 && { borderColor: '#FF9800', borderWidth: 1 }]} onPress={() => navigation.navigate('ScheduledOrders')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Text style={styles.actionIconText}>📅</Text>
+              {isSuperAdmin && (
+                <View style={styles.statCard}>
+                  <Text style={styles.statIcon}>🎓</Text>
+                  <Text style={styles.statNum}>{stats.total_users}</Text>
+                  <Text style={styles.statLabel}>Students</Text>
+                </View>
+              )}
+
+              {isSuperAdmin && (
+                <View style={styles.statCard}>
+                  <Text style={styles.statIcon}>💰</Text>
+                  <Text style={styles.statNum}>₹{stats.revenue || 0}</Text>
+                  <Text style={styles.statLabel}>Revenue</Text>
+                </View>
+              )}
+
+              <View style={[styles.statCard, pendingCount > 0 && { borderColor: '#FF9800', borderWidth: 2 }]}>
+                <Text style={styles.statIcon}>⏳</Text>
+                <Text style={[styles.statNum, pendingCount > 0 && { color: '#FF9800' }]}>{pendingCount}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('OrderQueue')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#EEF' }]}>
+                <Text style={styles.actionIconText}>📋</Text>
               </View>
               <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Scheduled Orders</Text>
-                <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
+                <Text style={styles.actionTitle}>Order Queue</Text>
+                <Text style={styles.actionSub}>Approve and manage orders</Text>
               </View>
-              {stats.scheduled_count > 0 && (
-                <View style={[styles.badge, { backgroundColor: '#FF9800' }]}>
-                  <Text style={styles.badgeText}>{stats.scheduled_count}</Text>
+              {pendingCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{pendingCount}</Text>
                 </View>
               )}
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                <Text style={styles.actionIconText}>📢</Text>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MenuManager')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Text style={styles.actionIconText}>🍽</Text>
               </View>
               <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Ad Manager</Text>
-                <Text style={styles.actionSub}>Upload and manage ads</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('FeedbackView')}>
-             <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-               <Text style={styles.actionIconText}>⭐</Text>
-             </View>
-             <View style={styles.actionInfo}>
-               <Text style={styles.actionTitle}>Customer Feedback</Text>
-               <Text style={styles.actionSub}>View ratings and reviews</Text>
-             </View>
-             <Text style={styles.arrow}>›</Text>
-             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Staff')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                <Text style={styles.actionIconText}>👨‍🍳</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Staff Management</Text>
-                <Text style={styles.actionSub}>Add or remove sub-admins</Text>
+                <Text style={styles.actionTitle}>Menu Manager</Text>
+                <Text style={styles.actionSub}>Add or remove menu items</Text>
               </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Analytics')}>
-             <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Text style={styles.actionIconText}>📊</Text>
-            </View>
-            <View style={styles.actionInfo}>
-             <Text style={styles.actionTitle}>Analytics Dashboard</Text>
-             <Text style={styles.actionSub}>Revenue, orders and insights</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-           </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdminOrderHistory')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
+                <Text style={styles.actionIconText}>📜</Text>
+              </View>
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle}>Order History</Text>
+                <Text style={styles.actionSub}>View past orders & earnings</Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Settings')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Text style={styles.actionIconText}>⚙️</Text>
+              </View>
+              <View style={styles.actionInfo}>
+                <Text style={styles.actionTitle}>Account Settings</Text>
+                <Text style={styles.actionSub}>Manage password & theme</Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+
+            {isSuperAdmin && (
+              <>
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Text style={styles.actionIconText}>🎓</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Student Management</Text>
+                    <Text style={styles.actionSub}>View and manage student accounts</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionCard, stats.scheduled_count > 0 && { borderColor: '#FF9800', borderWidth: 1 }]} onPress={() => navigation.navigate('ScheduledOrders')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Text style={styles.actionIconText}>📅</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Scheduled Orders</Text>
+                    <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
+                  </View>
+                  {stats.scheduled_count > 0 && (
+                    <View style={[styles.badge, { backgroundColor: '#FF9800' }]}>
+                      <Text style={styles.badgeText}>{stats.scheduled_count}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Text style={styles.actionIconText}>📢</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Ad Manager</Text>
+                    <Text style={styles.actionSub}>Upload and manage ads</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('FeedbackView')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Text style={styles.actionIconText}>⭐</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Customer Feedback</Text>
+                    <Text style={styles.actionSub}>View ratings and reviews</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Staff')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Text style={styles.actionIconText}>👨‍🍳</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Staff Management</Text>
+                    <Text style={styles.actionSub}>Add or remove sub-admins</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Analytics')}>
+                  <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+                    <Text style={styles.actionIconText}>📊</Text>
+                  </View>
+                  <View style={styles.actionInfo}>
+                    <Text style={styles.actionTitle}>Analytics Dashboard</Text>
+                    <Text style={styles.actionSub}>Revenue, orders and insights</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
       </ScrollView>

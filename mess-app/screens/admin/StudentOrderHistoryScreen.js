@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, TextInput } from 'react-native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 const STATUS_COLORS = {
   pending: '#FF9800',
@@ -66,7 +67,32 @@ export default function StudentOrderHistoryScreen({ route, navigation }) {
       </View>
 
       {loading ? (
-        <Text style={styles.loading}>Loading...</Text>
+        <View style={{ padding: 12 }}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Skeleton width={100} height={20} />
+                <Skeleton width={80} height={20} borderRadius={12} />
+              </View>
+              <View style={styles.cardBody}>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <View style={styles.detailBox}>
+                    <Skeleton width={50} height={12} />
+                    <Skeleton width={60} height={18} style={{ marginTop: 5 }} />
+                  </View>
+                  <View style={styles.detailBox}>
+                    <Skeleton width={40} height={12} />
+                    <Skeleton width={50} height={16} style={{ marginTop: 5 }} />
+                  </View>
+                </View>
+                <View style={{ marginTop: 12, padding: 10, backgroundColor: colors.background, borderRadius: 8 }}>
+                   <Skeleton width="40%" height={12} />
+                </View>
+              </View>
+              <Skeleton width={100} height={12} style={{ alignSelf: 'flex-end', marginTop: 8 }} />
+            </View>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filteredOrders}

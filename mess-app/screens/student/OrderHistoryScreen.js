@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput } from 'r
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 const STATUS_COLORS = {
   pending: '#FF9800',
@@ -67,7 +68,22 @@ export default function OrderHistoryScreen({ navigation }) {
       </View>
 
       {loading ? (
-        <Text style={styles.loading}>Loading...</Text>
+        <View style={{ flex: 1, padding: 10 }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={[styles.card, { height: 120, padding: 16 }]}>
+              <View style={styles.cardHeader}>
+                <Skeleton width={100} height={20} />
+                <Skeleton width={80} height={20} borderRadius={10} />
+              </View>
+              <View style={{ marginTop: 10 }}>
+                <Skeleton width="40%" height={15} />
+                <View style={{ marginTop: 10, padding: 10, backgroundColor: colors.background, borderRadius: 8 }}>
+                   <Skeleton width="60%" height={12} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filteredOrders}

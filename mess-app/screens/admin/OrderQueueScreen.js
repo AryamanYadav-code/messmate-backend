@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl, Modal, TextInput } from 'react-native';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from '../../components/Skeleton';
 
 const STATUS_CONFIG = {
   pending:   { color: '#FF9800', bg: '#FFF3E0', label: 'Pending',   icon: '⏳', darkBg: '#3A2E1A', darkColor: '#FFB74D' },
@@ -28,6 +29,7 @@ export default function OrderQueueScreen({ navigation }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [enteredCode, setEnteredCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOrders();
@@ -40,6 +42,7 @@ export default function OrderQueueScreen({ navigation }) {
       const res = await api.get('/orders/admin/pending');
       setOrders(res.data);
     } catch (err) { console.log(err); }
+    finally { setLoading(false); }
   };
 
   const onRefresh = async () => {
@@ -154,113 +157,132 @@ export default function OrderQueueScreen({ navigation }) {
         />
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.order_id.toString()}
-        contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
-        renderItem={({ item }) => {
-          const status = STATUS_CONFIG[item.status];
-          const action = NEXT_ACTION[item.status];
-          const badgeBg = isDark && status ? status.darkBg : (status ? status.bg : '#eee');
-          const badgeColor = isDark && status ? status.darkColor : (status ? status.color : '#333');
-
-          return (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.orderIdRow}>
-                  <Text style={styles.orderId}>Order #{item.order_id}</Text>
-                  {status && (
-                    <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
-                      <Text style={styles.statusIcon}>{status.icon}</Text>
-                      <Text style={[styles.statusText, { color: badgeColor }]}>{status.label}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.orderTime}>
-                  {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                </Text>
+      {loading ? (
+        <View style={{ flex: 1, padding: 10 }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={[styles.card, { height: 130, padding: 16 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                 <Skeleton width={100} height={20} />
+                 <Skeleton width={80} height={20} borderRadius={10} />
               </View>
-
-              <View style={styles.cardBody}>
-                <View style={styles.studentRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.studentName}>{item.name}</Text>
-                    <Text style={styles.studentEmail}>{item.email}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.orderDetails}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Amount</Text>
-                    <Text style={styles.detailValue}>₹{item.total_amount}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Slot</Text>
-                    <Text style={styles.detailValue}>{item.meal_slot}</Text>
-                  </View>
-                  {item.items && item.items.length > 0 && (
-                    <View style={styles.itemsList}>
-                      {item.items.map((it, idx) => (
-                        <Text key={idx} style={styles.itemText}>
-                          • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                  {item.special_note ? (
-                    <View style={styles.detailRow}>
-                       <Text style={styles.detailLabel}>Note</Text>
-                       <Text style={styles.detailValue}>{item.special_note}</Text>
-                    </View>
-                  ) : null}
-                  {item.status === 'ready' && (
-                    <View style={[styles.detailRow, { backgroundColor: isDark ? '#1A3320' : '#E8F5E9', padding: 8, borderRadius: 8, marginTop: 4 }]}>
-                      <Text style={[styles.detailLabel, { color: isDark ? '#81C784' : '#4CAF50' }]}>Status</Text>
-                      <Text style={[styles.detailValue, { color: isDark ? '#81C784' : '#4CAF50' }]}>Waiting for student</Text>
-                    </View>
-                  )}
-                </View>
+              <View style={{ marginTop: 15 }}>
+                 <Skeleton width="60%" height={15} />
+                 <View style={{ marginTop: 10, padding: 10, backgroundColor: colors.background, borderRadius: 8 }}>
+                    <Skeleton width="40%" height={12} />
+                 </View>
               </View>
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                {action && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: action.color, flex: 1, marginTop: 0 }]}
-                    onPress={() => updateStatus(item.order_id, action.next)}>
-                    <Text style={styles.actionBtnText}>{action.label}</Text>
-                  </TouchableOpacity>
-                )}
-                {item.status === 'pending' && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#F44336', flex: 1, marginTop: 0 }]}
-                    onPress={() => rejectOrder(item.order_id)}>
-                    <Text style={styles.actionBtnText}>Reject</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {item.status === 'ready' && (
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#607D8B', marginTop: 8 }]}
-                  onPress={() => openCollectModal(item)}>
-                  <Text style={styles.actionBtnText}>🔐 Verify & Collect</Text>
-                </TouchableOpacity>
-              )}
             </View>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🎉</Text>
-            <Text style={styles.emptyText}>No orders here!</Text>
-            <Text style={styles.emptySub}>Pull down to refresh</Text>
-          </View>
-        }
-      />
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.order_id.toString()}
+          contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
+          renderItem={({ item }) => {
+            const status = STATUS_CONFIG[item.status];
+            const action = NEXT_ACTION[item.status];
+            const badgeBg = isDark && status ? status.darkBg : (status ? status.bg : '#eee');
+            const badgeColor = isDark && status ? status.darkColor : (status ? status.color : '#333');
+
+            return (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.orderIdRow}>
+                    <Text style={styles.orderId}>Order #{item.order_id}</Text>
+                    {status && (
+                      <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
+                        <Text style={styles.statusIcon}>{status.icon}</Text>
+                        <Text style={[styles.statusText, { color: badgeColor }]}>{status.label}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.orderTime}>
+                    {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+
+                <View style={styles.cardBody}>
+                  <View style={styles.studentRow}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.studentName}>{item.name}</Text>
+                      <Text style={styles.studentEmail}>{item.email}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.orderDetails}>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Amount</Text>
+                      <Text style={styles.detailValue}>₹{item.total_amount}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Slot</Text>
+                      <Text style={styles.detailValue}>{item.meal_slot}</Text>
+                    </View>
+                    {item.items && item.items.length > 0 && (
+                      <View style={styles.itemsList}>
+                        {item.items.map((it, idx) => (
+                          <Text key={idx} style={styles.itemText}>
+                            • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {item.special_note ? (
+                      <View style={styles.detailRow}>
+                         <Text style={styles.detailLabel}>Note</Text>
+                         <Text style={styles.detailValue}>{item.special_note}</Text>
+                      </View>
+                    ) : null}
+                    {item.status === 'ready' && (
+                      <View style={[styles.detailRow, { backgroundColor: isDark ? '#1A3320' : '#E8F5E9', padding: 8, borderRadius: 8, marginTop: 4 }]}>
+                        <Text style={[styles.detailLabel, { color: isDark ? '#81C784' : '#4CAF50' }]}>Status</Text>
+                        <Text style={[styles.detailValue, { color: isDark ? '#81C784' : '#4CAF50' }]}>Waiting for student</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  {action && (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: action.color, flex: 1, marginTop: 0 }]}
+                      onPress={() => updateStatus(item.order_id, action.next)}>
+                      <Text style={styles.actionBtnText}>{action.label}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {item.status === 'pending' && (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#F44336', flex: 1, marginTop: 0 }]}
+                      onPress={() => rejectOrder(item.order_id)}>
+                      <Text style={styles.actionBtnText}>Reject</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {item.status === 'ready' && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#607D8B', marginTop: 8 }]}
+                    onPress={() => openCollectModal(item)}>
+                    <Text style={styles.actionBtnText}>🔐 Verify & Collect</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🎉</Text>
+              <Text style={styles.emptyText}>No orders here!</Text>
+              <Text style={styles.emptySub}>Pull down to refresh</Text>
+            </View>
+          }
+        />
+      )}
 
       <Modal visible={collectModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
