@@ -1,226 +1,280 @@
-import React, { useState, useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl, TextInput, Modal } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  FlatList, 
+  TouchableOpacity, 
+  TextInput, 
+  Alert,
+  StatusBar,
+  Dimensions,
+  RefreshControl
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  FadeInDown, 
+  FadeInRight,
+  Layout,
+  SlideInLeft
+} from 'react-native-reanimated';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
+const { width } = Dimensions.get('window');
+
+const StaffCard = ({ item, index, onDelete }) => (
+  <Animated.View 
+    entering={FadeInDown.delay(index * 50).duration(500)}
+    layout={Layout.springify()}
+    style={styles.cardContainer}
+  >
+    <BlurView intensity={20} tint="dark" style={styles.cardBlur}>
+      <View style={styles.avatarLabel}>
+        <LinearGradient
+          colors={item.role === 'admin' ? ['#FF5722', '#FF9800'] : ['#4B4B50', '#2C2C2E']}
+          style={styles.avatarGradient}
+        >
+          <Text style={styles.avatarText}>{(item?.name || item?.email || 'S').charAt(0).toUpperCase()}</Text>
+        </LinearGradient>
+      </View>
+      
+      <View style={styles.cardInfo}>
+        <View style={styles.nameRow}>
+          <Text style={styles.username} numberOfLines={1}>{item?.name || 'Unknown Operator'}</Text>
+          <View style={[styles.roleBadge, { borderColor: item?.role === 'admin' ? '#FF5722' : 'rgba(255,255,255,0.2)' }]}>
+            <Text style={[styles.roleText, { color: item?.role === 'admin' ? '#FF5722' : 'rgba(255,255,255,0.6)' }]}>
+              {(item?.role || 'staff').toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.nodeId}>ID: {(item?.user_id?.toString() || '00000').slice(0, 8).toUpperCase()}</Text>
+        <Text style={styles.timestamp}>Joined: {item?.created_at ? new Date(item.created_at).toLocaleDateString() : 'Historical'}</Text>
+      </View>
+
+      <TouchableOpacity 
+        onPress={() => onDelete(item.user_id)}
+        style={styles.deleteAction}
+      >
+        <BlurView intensity={25} tint="light" style={styles.deleteBlur}>
+          <Text style={styles.deleteIcon}>×</Text>
+        </BlurView>
+      </TouchableOpacity>
+    </BlurView>
+  </Animated.View>
+);
+
 export default function StaffScreen({ navigation }) {
   const { colors } = useTheme();
-  const styles = getStyles(colors);
-
   const [staff, setStaff] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => { 
+    const delayDebounceFn = setTimeout(() => {
+      fetchStaff();
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
 
   const fetchStaff = async () => {
     try {
-      const res = await api.get('/admin/staff');
+      const res = await api.get('/admin/staff', {
+        params: { search: search || undefined }
+      });
       setStaff(res.data);
-    } catch (err) { console.log(err); }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchStaff();
-    setRefreshing(false);
-  };
-
-  const addStaff = async () => {
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanName || !cleanEmail || !password)
-      return Alert.alert('Error', 'Please fill all fields');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail))
-      return Alert.alert('Error', 'Please enter a valid email address');
-    if (password.length < 6)
-      return Alert.alert('Error', 'Password must be at least 6 characters');
-    setLoading(true);
-    try {
-      await api.post('/admin/staff', { name: cleanName, email: cleanEmail, password });
-      Alert.alert('Staff Added! 📧', `Verification email sent to ${cleanEmail}. They need to verify before logging in.`);
-      setShowModal(false);
-      setName(''); setEmail(''); setPassword('');
-      fetchStaff();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to add staff');
-    } finally { setLoading(false); }
-  };
-
-  const removeStaff = (id, name) => {
-    Alert.alert('Remove Staff', `Remove "${name}" and ALL their data permanently? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: async () => {
-        try {
-          await api.delete(`/admin/staff/${id}`);
-          fetchStaff();
-        } catch (err) { Alert.alert('Error', 'Could not remove staff'); }
-      }}
-    ]);
-  };
-
-  const toggleUserStatus = async (user_id, current_status) => {
-    try {
-      await api.patch(`/admin/users/${user_id}/status`, { is_active: !current_status });
-      fetchStaff();
-    } catch (err) {
-      Alert.alert('Error', 'Could not update user status');
+      console.log(err);
+      Alert.alert('System Error', 'Could not access personnel records.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Staff Management</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
-          <Text style={styles.addBtnText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchStaff();
+    setRefreshing(false);
+  }, [search]);
 
-      <View style={styles.infoBox}>
-        <Text style={styles.infoText}>
-          Staff members can approve orders and manage the menu. They cannot access student management or staff management.
-        </Text>
-      </View>
-
-      <FlatList
-        data={staff}
-        keyExtractor={item => String(item.user_id ?? item.id ?? item.email)}
-        contentContainerStyle={{ padding: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
-            </View>
-            <View style={styles.info}>
-              <View style={styles.nameRow}>
-                <Text style={styles.name}>{item.name}</Text>
-                {item.is_active === false && (
-                  <View style={styles.inactiveBadge}>
-                    <Text style={styles.inactiveText}>Inactive</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.email}>{item.email}</Text>
-              <Text style={styles.date}>
-                Added {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </Text>
-              <TouchableOpacity 
-                onPress={() => toggleUserStatus(item.user_id, item.is_active)}
-                style={[styles.statusToggle, { backgroundColor: item.is_active ? '#FFF3E0' : '#E8F5E9', marginTop: 6, alignSelf: 'flex-start' }]}
-              >
-                <Text style={[styles.statusToggleText, { color: item.is_active ? '#FF9800' : '#4CAF50' }]}>
-                  {item.is_active ? 'Deactivate' : 'Activate'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.sideActions}>
-              <View style={styles.staffBadge}>
-                <Text style={styles.staffBadgeText}>Staff</Text>
-              </View>
-              <TouchableOpacity style={styles.removeBtn} onPress={() => removeStaff(item.user_id, item.name)}>
-                <Text style={styles.removeBtnText}>🗑</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>👨‍🍳</Text>
-            <Text style={styles.emptyText}>No staff registered yet</Text>
-            <TouchableOpacity style={styles.addEmptyBtn} onPress={() => setShowModal(true)}>
-              <Text style={styles.addEmptyBtnText}>+ Add First Staff Member</Text>
-            </TouchableOpacity>
-          </View>
+  const handleDelete = (id) => {
+    Alert.alert(
+      'Unauthorized Access Node',
+      'Are you sure you want to decommission this staff profile?',
+      [
+        { text: 'ABORT', style: 'cancel' },
+        { 
+          text: 'EXECUTE', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/admin/staff/${id}`);
+              fetchStaff();
+            } catch (err) {
+              Alert.alert('Protocol Failure', 'Decommissioning failed.');
+            }
+          }
         }
-      />
+      ]
+    );
+  };
 
-      <Modal visible={showModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Add Staff Member</Text>
-            <Text style={styles.modalSubtitle}>They will have access to order queue and menu manager only</Text>
+  const filteredStaff = staff || [];
 
-            <TextInput style={styles.input} placeholder="Full Name"
-              placeholderTextColor="#bbb" value={name} onChangeText={setName}/>
-            <TextInput style={styles.input} placeholder="Email address"
-              placeholderTextColor="#bbb" value={email} onChangeText={setEmail}
-              keyboardType="email-address" autoCapitalize="none"/>
-            <TextInput style={styles.input} placeholder="Password (min 6 characters)"
-              placeholderTextColor="#bbb" value={password} onChangeText={setPassword}
-              secureTextEntry/>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => {
-                setShowModal(false);
-                setName(''); setEmail(''); setPassword('');
-              }}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, loading && { backgroundColor: '#aaa' }]}
-                onPress={addStaff} disabled={loading}>
-                <Text style={styles.saveBtnText}>{loading ? 'Adding...' : 'Add Staff'}</Text>
-              </TouchableOpacity>
-            </View>
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#0F0F12', '#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
+      
+      {/* Background Orbs */}
+      <View style={[styles.orb, { top: -100, left: -100, backgroundColor: 'rgba(255, 87, 34, 0.15)' }]} />
+      <View style={[styles.orb, { bottom: -150, right: -150, backgroundColor: 'rgba(255, 152, 0, 0.1)' }]} />
+      
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <LinearGradient 
+            colors={['rgba(255, 87, 34, 0.6)', 'rgba(255, 87, 34, 0.2)', 'transparent']} 
+            style={styles.headerMesh} 
+          />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+             <BlurView intensity={20} tint="light" style={styles.blurBtn}>
+                <Text style={styles.backIcon}>‹</Text>
+             </BlurView>
+          </TouchableOpacity>
+          <View style={styles.titleArea}>
+            <Text style={styles.subtitle}>PERSONNEL REGISTRY</Text>
+            <Text style={styles.title}>System Operators</Text>
+          </View>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{staff.length}</Text>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        <View style={styles.searchContainer}>
+          <BlurView intensity={10} tint="dark" style={styles.searchBlur}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              placeholder="Search Personnel Database..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+            />
+          </BlurView>
+        </View>
+
+        <FlatList
+          data={filteredStaff}
+          keyExtractor={item => String(item.user_id)}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          renderItem={({ item, index }) => (
+            <StaffCard item={item} index={index} onDelete={handleDelete} />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+               <Text style={styles.emptyIcon}>👤</Text>
+               <Text style={styles.emptyText}>Personnel registry is offline</Text>
+               <Text style={styles.emptySubText}>No operators found matching current search parameters.</Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />
+          }
+        />
+
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => Alert.alert('Protocol Info', 'Registration must be performed via System Auth Terminal.')}
+        >
+          <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.fabGradient}>
+            <Text style={styles.fabText}>+</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </View>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
-  addBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  infoBox: { backgroundColor: colors.primaryLight, margin: 12, borderRadius: 12, padding: 12 },
-  infoText: { fontSize: 12, color: colors.primary, lineHeight: 18 },
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 2 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  avatarText: { fontSize: 20, fontWeight: 'bold', color: '#4CAF50' },
-  info: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { fontSize: 13, fontWeight: 'bold', color: colors.text },
-  inactiveBadge: { backgroundColor: '#F5F5F5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, borderWidth: 1, borderColor: '#DDD' },
-  inactiveText: { fontSize: 8, color: '#999', fontWeight: 'bold', textTransform: 'uppercase' },
-  email: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
-  date: { fontSize: 10, color: colors.textSecondary, marginTop: 3 },
-  statusToggle: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  statusToggleText: { fontSize: 10, fontWeight: 'bold' },
-  sideActions: { alignItems: 'flex-end', gap: 8 },
-  staffBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  staffBadgeText: { color: '#4CAF50', fontSize: 11, fontWeight: '600' },
-  removeBtn: { padding: 4 },
-  removeBtnText: { fontSize: 18 },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: colors.textSecondary, marginBottom: 20 },
-  addEmptyBtn: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  addEmptyBtnText: { color: '#fff', fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
-  modalSubtitle: { fontSize: 12, color: colors.textSecondary, marginBottom: 20, lineHeight: 18 },
-  input: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, marginBottom: 12 },
-  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
-  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
-  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: 'bold' },
-}); 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F12' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingVertical: 15 
+  },
+  backButton: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 15, 
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+  },
+  blurBtn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { fontSize: 32, color: '#FFF', fontWeight: '200', marginTop: -4 },
+  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150 },
+  titleArea: { alignItems: 'center' },
+  subtitle: { fontSize: 9, fontWeight: '900', color: '#FF5722', letterSpacing: 2.5, marginBottom: 4 },
+  title: { fontSize: 20, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  countBadge: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 12, 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  countText: { color: '#FF5722', fontWeight: '900', fontSize: 16 },
+  
+  searchContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  searchBlur: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderRadius: 20, 
+    paddingHorizontal: 15, 
+    height: 54, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.08)' 
+  },
+  searchIcon: { fontSize: 16, marginRight: 12, opacity: 0.6 },
+  searchInput: { flex: 1, color: '#FFF', fontSize: 15, fontWeight: '600' },
+  
+  listContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 100 },
+  columnWrapper: { justifyContent: 'space-between' },
+  cardContainer: { width: (width - 48) / 2, marginBottom: 16, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  cardBlur: { padding: 16, alignItems: 'center' },
+  avatarLabel: { marginBottom: 16 },
+  avatarGradient: { width: 64, height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  avatarText: { fontSize: 28, fontWeight: '900', color: '#FFF' },
+  cardInfo: { alignItems: 'center' },
+  nameRow: { alignItems: 'center', marginBottom: 8 },
+  username: { fontSize: 15, fontWeight: '900', color: '#FFF', textAlign: 'center' },
+  roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, marginTop: 4 },
+  roleText: { fontSize: 8, fontWeight: '900' },
+  nodeId: { fontSize: 8, fontWeight: '800', color: 'rgba(255,255,255,0.3)', letterSpacing: 1, marginTop: 4 },
+  timestamp: { fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.2)', marginTop: 2 },
+  
+  deleteAction: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, overflow: 'hidden', zIndex: 10 },
+  deleteBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,82,82,0.1)' },
+  deleteIcon: { fontSize: 14, color: 'rgba(255,82,82,0.6)', fontWeight: '900' },
+
+  fab: { position: 'absolute', bottom: 30, right: 20, borderRadius: 24, overflow: 'hidden', elevation: 10 },
+  fabGradient: { width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
+  fabText: { fontSize: 32, color: '#FFF', fontWeight: '300' },
+
+  emptyContainer: { flex: 1, alignItems: 'center', marginTop: 100 },
+  emptyIcon: { fontSize: 60, opacity: 0.2, marginBottom: 20 },
+  emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: '800' },
+  emptySubText: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
+  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 }
+});

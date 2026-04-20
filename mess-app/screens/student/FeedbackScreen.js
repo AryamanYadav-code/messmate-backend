@@ -1,114 +1,188 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, SafeAreaView } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+    View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, 
+    SafeAreaView, Animated, Dimensions, ActivityIndicator 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
+const { width } = Dimensions.get('window');
+
 export default function FeedbackScreen({ route, navigation }) {
-  const { colors } = useTheme();
-  const styles = getStyles(colors);
-  const { order_id, total_amount } = route.params;
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+  const { order_id, total_amount } = route.params || { order_id: '0', total_amount: '0' };
+  
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const bounceAnims = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(1))).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+  }, []);
+
+  const animateStar = (index) => {
+    setRating(index + 1);
+    Animated.sequence([
+      Animated.spring(bounceAnims[index], { toValue: 1.5, friction: 3, useNativeDriver: true }),
+      Animated.spring(bounceAnims[index], { toValue: 1, friction: 3, useNativeDriver: true }),
+    ]).start();
+  };
+
   const submitFeedback = async () => {
-    if (rating === 0) return Alert.alert('Error', 'Please select a rating!');
+    if (rating === 0) return Alert.alert('Attention', 'Please touch a star to rate your meal!');
     setLoading(true);
     try {
       await api.post(`/orders/${order_id}/feedback`, {
         rating,
         review_text: review
       });
-      Alert.alert('Thank you! 🎉', 'Your feedback helps us improve!', [
-        { text: 'OK', onPress: () => navigation.replace('Home') }
+      Alert.alert('Pure Excellence! 🎉', 'Your feedback has been recorded in the Obsidian vaults.', [
+        { text: 'Finish', onPress: () => navigation.replace('Home') }
       ]);
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to submit feedback');
+      Alert.alert('Sync Error', err.response?.data?.error || 'Failed to submit feedback');
     } finally { setLoading(false); }
   };
 
-  const EMOJIS = ['😞', '😕', '😐', '😊', '😄'];
-  const LABELS = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+  const EMOJIS = ['😞', '😕', '😐', '😊', '😍'];
+  const LABELS = ['Needs Refinement', 'Fair Experience', 'Standard Quality', 'Great Service', 'Exceptional Quality'];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Rate Your Order</Text>
-      </View>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      
+      {/* Background Depth */}
+      <View style={styles.orb1} />
+      
+      <LinearGradient colors={isDark ? ['#1A1A1F', '#0F0F12'] : [colors.primary, '#E64A19']} style={styles.header}>
+        <SafeAreaView>
+          <View style={styles.headerContent}>
+             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <BlurView intensity={20} tint="light" style={styles.blurBtn}>
+                   <Ionicons name="chevron-back" size={22} color="#FFF" />
+                </BlurView>
+             </TouchableOpacity>
+             <Text style={styles.headerTitle}>Rate Experience</Text>
+             <View style={{ width: 44 }} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-      <View style={styles.content}>
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderInfoText}>Order #{order_id}</Text>
-          <Text style={styles.orderInfoAmount}>₹{total_amount}</Text>
+      <Animated.ScrollView contentContainerStyle={styles.scrollContent} style={{ opacity: fadeAnim }} showsVerticalScrollIndicator={false}>
+        <View style={styles.summaryCard}>
+           <Text style={styles.summaryLabel}>ORDER REFERENCE</Text>
+           <Text style={styles.summaryValue}>#MS-{order_id.toString().padStart(5, '0')}</Text>
+           <View style={styles.summaryBadge}>
+              <Text style={styles.badgeText}>COMPLETED</Text>
+           </View>
         </View>
 
-        <Text style={styles.question}>How was your experience?</Text>
+        <Text style={styles.question}>How would you rate the gastronomy and service level?</Text>
 
         <View style={styles.starsRow}>
-          {[1, 2, 3, 4, 5].map(star => (
-            <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starBtn}>
-              <Text style={[styles.star, rating >= star && styles.starActive]}>★</Text>
+          {[0, 1, 2, 3, 4].map(idx => (
+            <TouchableOpacity key={idx} onPress={() => animateStar(idx)} activeOpacity={0.7} style={styles.starBtn}>
+              <Animated.View style={{ transform: [{ scale: bounceAnims[idx] }] }}>
+                <Ionicons 
+                  name={rating > idx ? "star" : "star-outline"} 
+                  size={42} 
+                  color={rating > idx ? "#FFD700" : (isDark ? "#333" : "#DDD")} 
+                />
+              </Animated.View>
             </TouchableOpacity>
           ))}
         </View>
 
         {rating > 0 && (
-          <View style={styles.emojiRow}>
-            <Text style={styles.emoji}>{EMOJIS[rating - 1]}</Text>
-            <Text style={styles.ratingLabel}>{LABELS[rating - 1]}</Text>
+          <View style={styles.reactionWrap}>
+             <Text style={styles.emojiText}>{EMOJIS[rating - 1]}</Text>
+             <Text style={styles.ratingLabelText}>{LABELS[rating - 1]}</Text>
           </View>
         )}
 
-        <Text style={styles.reviewLabel}>Write a review (optional)</Text>
-        <TextInput
-          style={styles.reviewInput}
-          placeholder="Tell us about your experience..."
-          placeholderTextColor={colors.textSecondary}
-          value={review}
-          onChangeText={setReview}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
+        <View style={styles.inputWrap}>
+           <Text style={styles.inputLabel}>ELABORATE ON YOUR EXPERIENCE</Text>
+           <BlurView intensity={isDark ? 10 : 50} tint={isDark ? "dark" : "light"} style={styles.inputBlur}>
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Share your thoughts with our culinary team..."
+                placeholderTextColor={isDark ? "#666" : "#999"}
+                value={review}
+                onChangeText={setReview}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+           </BlurView>
+        </View>
 
-        <TouchableOpacity
-          style={[styles.submitBtn, (loading || rating === 0) && styles.submitBtnDisabled]}
-          onPress={submitFeedback}
-          disabled={loading || rating === 0}>
-          <Text style={styles.submitBtnText}>
-            {loading ? 'Submitting...' : 'Submit Feedback'}
-          </Text>
+        <TouchableOpacity 
+          style={[styles.submitBtn, rating === 0 && styles.disabledBtn]} 
+          onPress={submitFeedback} 
+          disabled={loading || rating === 0}
+        >
+          <LinearGradient colors={rating > 0 ? [colors.primary, '#F4511E'] : ['#3D3D4A', '#2D2D3A']} style={styles.btnIn}>
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.btnText}>AUTHENTICATE FEEDBACK</Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.skipBtn} onPress={() => navigation.replace('Home')}>
-          <Text style={styles.skipBtnText}>Skip for now</Text>
+           <Text style={styles.skipText}>PROCEED WITHOUT RATING</Text>
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 20, alignItems: 'center' },
-  headerTitle: { color: colors.headerText, fontSize: 20, fontWeight: 'bold' },
-  content: { padding: 24 },
-  orderInfo: { backgroundColor: colors.primaryLight, borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 30 },
-  orderInfoText: { fontSize: 13, color: colors.textSecondary },
-  orderInfoAmount: { fontSize: 22, fontWeight: 'bold', color: colors.primary, marginTop: 4 },
-  question: { fontSize: 18, fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: 20 },
-  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 16 },
-  starBtn: { padding: 4 },
-  star: { fontSize: 44, color: colors.border },
-  starActive: { color: colors.warning },
-  emojiRow: { alignItems: 'center', marginBottom: 24 },
-  emoji: { fontSize: 48 },
-  ratingLabel: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginTop: 8 },
-  reviewLabel: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
-  reviewInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 14, fontSize: 14, color: colors.text, backgroundColor: colors.inputBg, height: 120, marginBottom: 20 },
-  submitBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
-  submitBtnDisabled: { backgroundColor: colors.textSecondary },
-  submitBtnText: { color: colors.headerText, fontSize: 16, fontWeight: 'bold' },
-  skipBtn: { alignItems: 'center' },
-  skipBtnText: { color: colors.textSecondary, fontSize: 14 },
+  header: { height: 140, borderBottomLeftRadius: 35, borderBottomRightRadius: 35, overflow: 'hidden' },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10 },
+  backBtn: { width: 44, height: 44, borderRadius: 15, overflow: 'hidden' },
+  blurBtn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+
+  orb1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: colors.primary + '08', top: -100, right: -100 },
+
+  scrollContent: { padding: 25 },
+
+  summaryCard: { backgroundColor: colors.card, borderRadius: 24, padding: 20, alignItems: 'center', marginBottom: 35, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' },
+  summaryLabel: { fontSize: 10, fontWeight: '900', color: colors.textSecondary, letterSpacing: 1.5, marginBottom: 5 },
+  summaryValue: { fontSize: 20, fontWeight: '900', color: colors.text },
+  summaryBadge: { backgroundColor: '#4ADE8015', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10, marginTop: 10 },
+  badgeText: { color: '#4ADE80', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
+  question: { fontSize: 16, fontWeight: '800', color: colors.text, textAlign: 'center', lineHeight: 24, marginBottom: 25 },
+  
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginBottom: 20 },
+  starBtn: { padding: 5 },
+
+  reactionWrap: { alignItems: 'center', marginBottom: 35 },
+  emojiText: { fontSize: 48 },
+  ratingLabelText: { fontSize: 15, fontWeight: '900', color: colors.primary, marginTop: 10, letterSpacing: 0.5 },
+
+  inputWrap: { marginBottom: 35 },
+  inputLabel: { fontSize: 10, fontWeight: '900', color: colors.textSecondary, letterSpacing: 1.5, marginBottom: 12, marginLeft: 5 },
+  inputBlur: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+  reviewInput: { padding: 20, minHeight: 120, fontSize: 15, color: colors.text, fontWeight: '600' },
+
+  submitBtn: { borderRadius: 20, overflow: 'hidden', elevation: 10, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 15 },
+  disabledBtn: { shadowOpacity: 0, elevation: 0 },
+  btnIn: { padding: 22, alignItems: 'center' },
+  btnText: { color: '#FFF', fontWeight: '900', fontSize: 14, letterSpacing: 1.5 },
+
+  skipBtn: { alignItems: 'center', marginTop: 25, padding: 15 },
+  skipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '900', letterSpacing: 1, opacity: 0.7 }
 });

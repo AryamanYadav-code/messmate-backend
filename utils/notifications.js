@@ -46,4 +46,42 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
   }
 }
 
-module.exports = { sendPushNotification };
+async function broadcastPushNotification(userId, title, body, data = {}) {
+  const db = require('../config/db');
+  try {
+    const result = await db.query(
+      'SELECT push_token FROM user_push_tokens WHERE user_id = $1',
+      [userId]
+    );
+    
+    const tokens = result.rows.map(r => r.push_token);
+    if (tokens.length === 0) return;
+
+    console.log(`Broadcasting to ${tokens.length} tokens for user ${userId}`);
+    
+    // Expo allows up to 100 notifications in a single request
+    const notifications = tokens.map(token => ({
+      to: token,
+      title,
+      body,
+      data,
+      sound: 'default',
+      priority: 'high',
+      channelId: 'orders',
+    }));
+
+    const response = await axios.post('https://exp.host/--/api/v2/push/send', notifications, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      }
+    });
+
+    console.log('[Expo Broadcast Response]:', JSON.stringify(response.data, null, 2));
+  } catch (err) {
+    console.log('Error broadcasting push notification:', err.response?.data || err.message);
+  }
+}
+
+module.exports = { sendPushNotification, broadcastPushNotification };

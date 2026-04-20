@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, 
+  SafeAreaView, ScrollView, Animated, Dimensions, ActivityIndicator 
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
+const { width } = Dimensions.get('window');
+
 const MEAL_SLOTS = [
-  { key: 'breakfast', label: 'Breakfast', time: '7:00 - 9:00 AM', icon: '🌅' },
-  { key: 'lunch', label: 'Lunch', time: '12:00 - 2:00 PM', icon: '☀️' },
-  { key: 'dinner', label: 'Dinner', time: '7:00 - 9:00 PM', icon: '🌙' },
-  { key: 'snacks', label: 'Snacks', time: '4:00 - 6:00 PM', icon: '🍿' },
+  { key: 'breakfast', label: 'Breakfast', time: '7:00 - 9:00 AM', icon: 'sunny-outline', color: '#FFB74D' },
+  { key: 'lunch', label: 'Lunch', time: '12:00 - 2:00 PM', icon: 'restaurant-outline', color: '#64B5F6' },
+  { key: 'dinner', label: 'Dinner', time: '7:00 - 9:00 PM', icon: 'moon-outline', color: '#9575CD' },
+  { key: 'snacks', label: 'Snacks', time: '4:00 - 6:00 PM', icon: 'cafe-outline', color: '#81C784' },
 ];
 
 export default function ScheduleOrderScreen({ navigation }) {
@@ -19,6 +28,7 @@ export default function ScheduleOrderScreen({ navigation }) {
   const [menu, setMenu] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [menuLoading, setMenuLoading] = useState(false);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -27,13 +37,20 @@ export default function ScheduleOrderScreen({ navigation }) {
     weekday: 'long', day: 'numeric', month: 'long'
   });
 
-  useEffect(() => { fetchMenu(); }, [selectedSlot]);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    fetchMenu();
+  }, [selectedSlot]);
 
   const fetchMenu = async () => {
+    setMenuLoading(true);
     try {
       const res = await api.get(`/menu/${selectedSlot}`);
       setMenu(res.data);
     } catch (err) { console.log(err); }
+    finally { setMenuLoading(false); }
   };
 
   const addToCart = (item) => {
@@ -77,138 +94,189 @@ export default function ScheduleOrderScreen({ navigation }) {
       });
 
       Alert.alert(
-        'Order Scheduled! 🎉',
-        `Your ${selectedSlot} for tomorrow has been pre-ordered!\n\nPickup Code: ${res.data.pickup_code}`,
-        [{ text: 'OK', onPress: () => navigation.replace('Home') }]
+        'Voucher Reserved! 🎫',
+        `Your ${selectedSlot} reservation for tomorrow is confirmed.\n\nTransaction: #MS-${res.data.order_id}`,
+        [{ text: 'Great', onPress: () => navigation.replace('Home') }]
       );
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to schedule order');
+      Alert.alert('Transaction Failed', err.response?.data?.error || 'Failed to schedule reservation');
     } finally { setLoading(false); }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pre-Order</Text>
-        <View style={{ width: 30 }}/>
-      </View>
+  const renderItem = ({ item }) => {
+    const cartItem = cart.find(c => c.item_id === item.item_id);
+    return (
+      <View style={styles.menuCard}>
+        <View style={styles.cardInfo}>
+          <View style={styles.badgeRow}>
+             <View style={[styles.vegBadge, { borderColor: item.is_veg ? '#4CAF50' : '#F44336' }]}>
+                <View style={[styles.vegDot, { backgroundColor: item.is_veg ? '#4CAF50' : '#F44336' }]} />
+             </View>
+             <Text style={styles.itemCategory}>FRESH PREP</Text>
+          </View>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
+          <Text style={styles.itemPrice}>₹{item.price}</Text>
+        </View>
 
-      <View style={styles.dateBanner}>
-        <Text style={styles.dateBannerIcon}>📅</Text>
-        <View>
-          <Text style={styles.dateBannerLabel}>Ordering for tomorrow</Text>
-          <Text style={styles.dateBannerDate}>{tomorrowDisplay}</Text>
+        <View style={styles.actionWrap}>
+          {cartItem ? (
+            <View style={styles.qtyContainer}>
+              <TouchableOpacity onPress={() => removeFromCart(item.item_id)} style={styles.qtyBtn}>
+                <Ionicons name="remove" size={16} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.qtyText}>{cartItem.quantity}</Text>
+              <TouchableOpacity onPress={() => addToCart(item)} style={styles.qtyBtn}>
+                <Ionicons name="add" size={16} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => addToCart(item)} style={styles.addBtn}>
+               <LinearGradient colors={[colors.primary, '#F4511E']} style={styles.addGrad}>
+                  <Text style={styles.addBtnText}>RESERVE</Text>
+               </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
+    );
+  };
 
-      <View style={styles.slotsRow}>
-        {MEAL_SLOTS.map(slot => (
-          <TouchableOpacity
-            key={slot.key}
-            style={[styles.slotBtn, selectedSlot === slot.key && styles.slotBtnActive]}
-            onPress={() => { setSelectedSlot(slot.key); setCart([]); }}>
-            <Text style={styles.slotIcon}>{slot.icon}</Text>
-            <Text style={[styles.slotLabel, selectedSlot === slot.key && styles.slotLabelActive]}>
-              {slot.label}
-            </Text>
-            <Text style={[styles.slotTime, selectedSlot === slot.key && { color: '#fff' }]}>
-              {slot.time}
-            </Text>
-          </TouchableOpacity>
-        ))}
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      
+      {/* Mesh Header */}
+      <LinearGradient 
+        colors={['#FF5722', '#F4511E']} 
+        start={{ x: 0, y: 0 }} 
+        end={{ x: 1, y: 1 }} 
+        style={styles.header}
+      >
+        <SafeAreaView>
+          <View style={styles.headerTop}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <BlurView intensity={20} tint="light" style={styles.blurBtn}>
+                   <Ionicons name="chevron-back" size={22} color="#FFF" />
+                </BlurView>
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Pre-Order Vault</Text>
+              <View style={{ width: 44 }} />
+          </View>
+          
+          <View style={styles.dateInfo}>
+             <BlurView intensity={20} tint="light" style={styles.dateBlur}>
+                <Ionicons name="calendar-outline" size={16} color="#FFF" />
+                <Text style={styles.dateLabel}>TOMORROW • {tomorrowDisplay.toUpperCase()}</Text>
+             </BlurView>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <View style={styles.slotContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.slotScroll}>
+           {MEAL_SLOTS.map(slot => (
+             <TouchableOpacity 
+               key={slot.key} 
+               style={[styles.slotTab, selectedSlot === slot.key && { backgroundColor: slot.color + '15', borderColor: slot.color }]}
+               onPress={() => { setSelectedSlot(slot.key); setCart([]); }}
+             >
+                <Ionicons name={slot.icon} size={20} color={selectedSlot === slot.key ? slot.color : (isDark ? '#666' : '#999')} />
+                <Text style={[styles.slotText, selectedSlot === slot.key && { color: slot.color }]}>{slot.label}</Text>
+             </TouchableOpacity>
+           ))}
+        </ScrollView>
       </View>
 
-      <FlatList
-        data={menu}
-        keyExtractor={item => item.item_id.toString()}
-        contentContainerStyle={{ padding: 12, paddingBottom: 120 }}
-        renderItem={({ item }) => {
-          const cartItem = cart.find(c => c.item_id === item.item_id);
-          return (
-            <View style={styles.card}>
-              <View style={[styles.vegDot, { backgroundColor: item.is_veg ? '#4CAF50' : '#f44336' }]}/>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDesc}>{item.description}</Text>
-                <Text style={styles.itemPrice}>₹{item.price}</Text>
-              </View>
-              {cartItem ? (
-                <View style={styles.qtyControl}>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.item_id)}>
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyNum}>{cartItem.quantity}</Text>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => addToCart(item)}>
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item)}>
-                  <Text style={styles.addBtnText}>ADD</Text>
-                </TouchableOpacity>
-              )}
+      <Animated.View style={[styles.menuWrap, { opacity: fadeAnim }]}>
+         {menuLoading ? (
+            <View style={styles.center}>
+               <ActivityIndicator size="small" color={colors.primary} />
             </View>
-          );
-        }}
-        ListEmptyComponent={<Text style={styles.empty}>No items available</Text>}
-      />
+         ) : (
+            <FlatList
+              data={menu}
+              keyExtractor={item => item.item_id.toString()}
+              renderItem={renderItem}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={
+                <View style={styles.emptyWrap}>
+                   <Ionicons name="fast-food-outline" size={60} color={isDark ? "#222" : "#EEE"} />
+                   <Text style={styles.emptyText}>No curation for this slot yet.</Text>
+                </View>
+              }
+            />
+         )}
+      </Animated.View>
 
       {cart.length > 0 && (
         <View style={styles.footer}>
-          <View style={styles.footerInfo}>
-            <Text style={styles.footerItems}>{cart.reduce((a, c) => a + c.quantity, 0)} items</Text>
-            <Text style={styles.footerTotal}>₹{total.toFixed(2)}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.scheduleBtn, loading && { backgroundColor: '#aaa' }]}
-            onPress={placeScheduledOrder}
-            disabled={loading}>
-            <Text style={styles.scheduleBtnText}>
-              {loading ? 'Scheduling...' : `Schedule ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)}`}
-            </Text>
-          </TouchableOpacity>
+           <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.footerBlur}>
+              <View style={styles.footerStats}>
+                 <Text style={styles.statsLabel}>RESERVATION TOTAL</Text>
+                 <Text style={styles.statsValue}>₹{total.toFixed(2)}</Text>
+              </View>
+              <TouchableOpacity style={styles.confirmBtn} onPress={placeScheduledOrder} disabled={loading}>
+                 <LinearGradient colors={[colors.primary, '#F4511E']} style={styles.confirmGrad}>
+                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.confirmText}>SECURE RESERVATION</Text>}
+                 </LinearGradient>
+              </TouchableOpacity>
+           </BlurView>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const getStyles = (colors, isDark) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
-  dateBanner: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dateBannerIcon: { fontSize: 28 },
-  dateBannerLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
-  dateBannerDate: { color: colors.headerText, fontSize: 16, fontWeight: 'bold' },
-  slotsRow: { flexDirection: 'row', backgroundColor: colors.card, padding: 8, gap: 6 },
-  slotBtn: { flex: 1, alignItems: 'center', padding: 8, borderRadius: 10, backgroundColor: colors.inputBg },
-  slotBtnActive: { backgroundColor: colors.primary },
-  slotIcon: { fontSize: 18 },
-  slotLabel: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
-  slotLabelActive: { color: '#fff' },
-  slotTime: { fontSize: 9, color: colors.divider, marginTop: 1, textAlign: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, elevation: 1 },
-  vegDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  itemDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  itemPrice: { fontSize: 14, color: colors.primary, fontWeight: 'bold', marginTop: 4 },
-  addBtn: { backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
-  addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 8, overflow: 'hidden' },
-  qtyBtn: { padding: 7, paddingHorizontal: 10 },
-  qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  qtyNum: { color: '#fff', fontWeight: 'bold', fontSize: 13, paddingHorizontal: 4 },
-  empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 40 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.card, padding: 16, elevation: 10, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  footerInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  footerItems: { fontSize: 14, color: colors.textSecondary },
-  footerTotal: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
-  scheduleBtn: { backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: 'center' },
-  scheduleBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-}); 
+  header: { paddingBottom: 25, borderBottomLeftRadius: 35, borderBottomRightRadius: 35, overflow: 'hidden' },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10 },
+  backBtn: { width: 44, height: 44, borderRadius: 15, overflow: 'hidden' },
+  blurBtn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  
+  dateInfo: { paddingHorizontal: 20, marginTop: 20 },
+  dateBlur: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dateLabel: { color: '#FFF', fontSize: 11, fontWeight: '900', marginLeft: 8, letterSpacing: 1 },
+
+  slotContainer: { marginTop: -20, marginBottom: 10 },
+  slotScroll: { paddingHorizontal: 20, paddingVertical: 10 },
+  slotTab: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, marginRight: 12, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', elevation: 3 },
+  slotText: { fontSize: 13, fontWeight: '900', marginLeft: 8, color: colors.textSecondary },
+
+  menuWrap: { flex: 1 },
+  listContent: { padding: 20, paddingBottom: 150 },
+  
+  menuCard: { backgroundColor: colors.card, borderRadius: 28, padding: 20, marginBottom: 15, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', elevation: 5 },
+  cardInfo: { flex: 1 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  vegBadge: { width: 14, height: 14, borderWidth: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 3, marginRight: 8 },
+  vegDot: { width: 6, height: 6, borderRadius: 3 },
+  itemCategory: { fontSize: 9, fontWeight: '900', color: colors.textSecondary, letterSpacing: 1 },
+  itemName: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  itemDesc: { fontSize: 12, color: colors.textSecondary, lineHeight: 16, marginBottom: 10 },
+  itemPrice: { fontSize: 16, fontWeight: '900', color: colors.primary },
+
+  actionWrap: { marginLeft: 15 },
+  addBtn: { borderRadius: 15, overflow: 'hidden' },
+  addGrad: { paddingHorizontal: 20, paddingVertical: 12 },
+  addBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 },
+
+  qtyContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 15, padding: 4 },
+  qtyBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+  qtyText: { color: '#FFF', fontWeight: '900', fontSize: 14, paddingHorizontal: 10 },
+
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyWrap: { alignItems: 'center', marginTop: 100 },
+  emptyText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700', marginTop: 15 },
+
+  footer: { position: 'absolute', bottom: 25, left: 20, right: 20, borderRadius: 30, overflow: 'hidden', elevation: 15, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
+  footerBlur: { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  footerStats: { flex: 1 },
+  statsLabel: { fontSize: 10, fontWeight: '900', color: colors.textSecondary, letterSpacing: 1, marginBottom: 4 },
+  statsValue: { fontSize: 20, fontWeight: '900', color: colors.primary },
+  confirmBtn: { flex: 1, borderRadius: 20, overflow: 'hidden' },
+  confirmGrad: { paddingVertical: 18, alignItems: 'center' },
+  confirmText: { color: '#FFF', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 }
+});

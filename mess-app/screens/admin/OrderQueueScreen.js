@@ -1,26 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl, Modal, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
+  SafeAreaView, RefreshControl, Modal, TextInput, Dimensions, Animated, ActivityIndicator,
+  StatusBar as RNStatusBar, ScrollView
+} from 'react-native';
+import { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
-import Skeleton from '../../components/Skeleton';
+
+const { width, height } = Dimensions.get('window');
 
 const STATUS_CONFIG = {
-  pending:   { color: '#FF9800', bg: '#FFF3E0', label: 'Pending',   icon: '⏳', darkBg: '#3A2E1A', darkColor: '#FFB74D' },
-  approved:  { color: '#2196F3', bg: '#E3F2FD', label: 'Approved',  icon: '✅', darkBg: '#1A2A3A', darkColor: '#64B5F6' },
-  preparing: { color: '#9C27B0', bg: '#F3E5F5', label: 'Preparing', icon: '👨‍🍳', darkBg: '#3A1A3A', darkColor: '#BA68C8' },
-  ready:     { color: '#4CAF50', bg: '#E8F5E9', label: 'Ready',     icon: '🎉', darkBg: '#1A3320', darkColor: '#81C784' },
+  pending: { color: '#FF9800', bg: 'rgba(255, 152, 0, 0.1)', label: 'Pending', icon: 'time-outline' },
+  approved: { color: '#2196F3', bg: 'rgba(33, 150, 243, 0.1)', label: 'Approved', icon: 'shield-checkmark-outline' },
+  preparing: { color: '#9C27B0', bg: 'rgba(156, 39, 176, 0.1)', label: 'Preparing', icon: 'restaurant-outline' },
+  ready: { color: '#4CAF50', bg: 'rgba(76, 175, 80, 0.1)', label: 'Ready', icon: 'notifications-outline' },
 };
 
 const NEXT_ACTION = {
-  pending:   { label: 'Approve Order',   next: 'approved',  color: '#2196F3' },
-  approved:  { label: 'Start Preparing', next: 'preparing', color: '#9C27B0' },
-  preparing: { label: 'Mark Ready',      next: 'ready',     color: '#4CAF50' },
+  pending: { label: 'AUTHENTICATE', next: 'approved', color: '#2196F3', icon: 'shield-checkmark-outline' },
+  approved: { label: 'BEGIN PREP', next: 'preparing', color: '#9C27B0', icon: 'flame-outline' },
+  preparing: { label: 'SIGNAL READY', next: 'ready', color: '#4CAF50', icon: 'megaphone-outline' },
 };
 
 export default function OrderQueueScreen({ navigation }) {
   const { colors, isDark } = useTheme();
-  const styles = getStyles(colors);
-
   const [orders, setOrders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -31,9 +39,12 @@ export default function OrderQueueScreen({ navigation }) {
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
     fetchOrders();
-    const interval = setInterval(fetchOrders, 8000);
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -55,26 +66,21 @@ export default function OrderQueueScreen({ navigation }) {
     try {
       await api.put(`/orders/${order_id}/status`, { status });
       fetchOrders();
-    } catch (err) { Alert.alert('Error', 'Could not update status'); }
+    } catch (err) { Alert.alert('Comm Error', 'Status sync failed'); }
   };
 
   const rejectOrder = (order_id) => {
     Alert.alert(
-      "Reject Order",
-      "Are you sure you want to reject this order? The wallet will be refunded.",
+      "Void Transaction",
+      "Rejecting this order will trigger a mandatory wallet refund. Proceed?",
       [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Reject", 
-          style: "destructive",
-          onPress: async () => {
+        { text: "Abort", style: "cancel" },
+        {
+          text: "Void Order", style: "destructive", onPress: async () => {
             try {
               await api.delete(`/orders/${order_id}/cancel`);
-              Alert.alert('Success', 'Order has been rejected and refunded');
               fetchOrders();
-            } catch (err) {
-              Alert.alert('Error', err.response?.data?.error || 'Could not reject order');
-            }
+            } catch (err) { Alert.alert('Error', 'Could not void order'); }
           }
         }
       ]
@@ -88,24 +94,19 @@ export default function OrderQueueScreen({ navigation }) {
   };
 
   const verifyAndCollect = async () => {
-    if (!enteredCode || enteredCode.length !== 6) {
-      return Alert.alert('Error', 'Please enter the 6-digit pickup code');
-    }
+    if (!enteredCode || enteredCode.length !== 6) return Alert.alert('Invalid', 'Enter 6-digit credential');
     setVerifying(true);
     try {
       const res = await api.post('/orders/verify-code', { pickup_code: enteredCode });
       if (res.data.order_id !== selectedOrder.order_id) {
-        Alert.alert('Wrong Code!', 'This code belongs to a different order. Please check again.');
         setVerifying(false);
-        return;
+        return Alert.alert('Mismatch', 'Credential belongs to another order.');
       }
       await api.put(`/orders/${selectedOrder.order_id}/status`, { status: 'delivered' });
-      Alert.alert('Success! ✅', `Order #${selectedOrder.order_id} marked as collected!`);
       setCollectModal(false);
-      setEnteredCode('');
       fetchOrders();
     } catch (err) {
-      Alert.alert('Invalid Code ❌', 'The pickup code is incorrect. Please ask the student to show their code.');
+      Alert.alert('Auth Failed', 'Credential verification rejected.');
     } finally { setVerifying(false); }
   };
 
@@ -113,276 +114,261 @@ export default function OrderQueueScreen({ navigation }) {
   const filtered = orders.filter(o => {
     const matchesFilter = filter === 'all' || o.status === filter;
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || 
-      o.order_id.toString().includes(q) || 
-      (o.name && o.name.toLowerCase().includes(q));
+    const matchesSearch = !q || o.order_id.toString().includes(q) || (o.name && o.name.toLowerCase().includes(q));
     return matchesFilter && matchesSearch;
   });
 
+  const renderOrder = ({ item, index }) => {
+    const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+    const action = NEXT_ACTION[item.status];
+    const cardWidth = (width - 44) / 2;
+
+    return (
+      <Animated.View 
+        entering={FadeInDown.delay(index * 50).duration(500)}
+        style={{ width: cardWidth, marginBottom: 12, marginRight: index % 2 === 0 ? 12 : 0 }}
+      >
+        <BlurView intensity={20} tint="dark" style={styles.orderCard}>
+          <View style={styles.cardHeader}>
+             <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+                <Ionicons name={config.icon} size={10} color={config.color} />
+                <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+             </View>
+             <Text style={styles.orderId}>#{item.order_id}</Text>
+          </View>
+
+          <View style={styles.cardInfo}>
+            <Text style={styles.studentName} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.itemSummary}>
+               {item.items && item.items.slice(0, 2).map((it, idx) => (
+                 <Text key={idx} style={styles.itemText} numberOfLines={1}>
+                   {it.quantity}x {it.name}
+                 </Text>
+               ))}
+               {item.items && item.items.length > 2 && (
+                 <Text style={styles.moreItems}>+{item.items.length - 2} more</Text>
+               )}
+            </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+             <Text style={styles.orderAmount}>₹{item.total_amount}</Text>
+             <Text style={styles.slotText}>{item.meal_slot}</Text>
+          </View>
+
+          <View style={styles.actionSection}>
+            {action ? (
+              <TouchableOpacity 
+                style={[styles.primaryAction, { backgroundColor: action.color }]}
+                onPress={() => updateStatus(item.order_id, action.next)}
+              >
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </TouchableOpacity>
+            ) : item.status === 'ready' ? (
+              <TouchableOpacity 
+                style={[styles.primaryAction, { backgroundColor: '#4CAF50' }]}
+                onPress={() => openCollectModal(item)}
+              >
+                <Text style={styles.actionLabel}>SECURE PICKUP</Text>
+              </TouchableOpacity>
+            ) : null}
+            
+            {(item.status === 'pending' || item.status === 'approved') && (
+               <TouchableOpacity 
+                style={styles.rejectMini}
+                onPress={() => rejectOrder(item.order_id)}
+              >
+                <Ionicons name="trash-outline" size={14} color="#FF5252" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </BlurView>
+      </Animated.View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Queue</Text>
-        <Text style={styles.orderCount}>{orders.length} orders</Text>
-      </View>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <RNStatusBar barStyle="light-content" />
+      <LinearGradient colors={['#1F1F2E', '#0F0F12']} style={StyleSheet.absoluteFill} />
 
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, backgroundColor: colors.background }}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by Order ID or Student Name..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+      <View style={styles.meshHeader}>
+        <LinearGradient
+          colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']}
+          style={styles.meshGradient}
         />
+        <SafeAreaView>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <BlurView intensity={20} tint="dark" style={styles.blurBtn}>
+                <Ionicons name="chevron-back" size={20} color="#FFF" />
+              </BlurView>
+            </TouchableOpacity>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.headerSubtitle}>COMMAND PIPELINE</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.headerTitle}>Order Queue</Text>
+                <View style={styles.liveTag}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>LIVE</Text>
+                </View>
+              </View>
+            </View>
+            <View style={{ width: 44 }} />
+          </View>
+
+          <View style={styles.searchWrap}>
+            <BlurView intensity={15} tint="dark" style={styles.searchBlur}>
+              <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.4)" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Filter by Order ID or Student..."
+                placeholderTextColor="rgba(255,255,255,0.2)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </BlurView>
+          </View>
+        </SafeAreaView>
       </View>
 
-      <View style={styles.filterRow}>
-        <FlatList 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          data={FILTERS}
-          keyExtractor={(item) => item}
-          renderItem={({ item: f }) => (
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {FILTERS.map(f => (
             <TouchableOpacity
-              style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
-              onPress={() => setFilter(f)}>
-              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+              key={f}
+              style={[styles.filterChip, filter === f && styles.filterChipActive]}
+              onPress={() => setFilter(f)}
+            >
+              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
+                {f.toUpperCase()}
               </Text>
             </TouchableOpacity>
-          )}
-        />
+          ))}
+        </ScrollView>
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, padding: 10 }}>
-          {[1, 2, 3, 4, 5].map(i => (
-            <View key={i} style={[styles.card, { height: 130, padding: 16 }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                 <Skeleton width={100} height={20} />
-                 <Skeleton width={80} height={20} borderRadius={10} />
-              </View>
-              <View style={{ marginTop: 15 }}>
-                 <Skeleton width="60%" height={15} />
-                 <View style={{ marginTop: 10, padding: 10, backgroundColor: colors.background, borderRadius: 8 }}>
-                    <Skeleton width="40%" height={12} />
-                 </View>
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={item => item.order_id.toString()}
-          contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
-          renderItem={({ item }) => {
-            const status = STATUS_CONFIG[item.status];
-            const action = NEXT_ACTION[item.status];
-            const badgeBg = isDark && status ? status.darkBg : (status ? status.bg : '#eee');
-            const badgeColor = isDark && status ? status.darkColor : (status ? status.color : '#333');
-
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.orderIdRow}>
-                    <Text style={styles.orderId}>Order #{item.order_id}</Text>
-                    {status && (
-                      <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
-                        <Text style={styles.statusIcon}>{status.icon}</Text>
-                        <Text style={[styles.statusText, { color: badgeColor }]}>{status.label}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.orderTime}>
-                    {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-
-                <View style={styles.cardBody}>
-                  <View style={styles.studentRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <View>
-                      <Text style={styles.studentName}>{item.name}</Text>
-                      <Text style={styles.studentEmail}>{item.email}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.orderDetails}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Amount</Text>
-                      <Text style={styles.detailValue}>₹{item.total_amount}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Slot</Text>
-                      <Text style={styles.detailValue}>{item.meal_slot}</Text>
-                    </View>
-                    {item.items && item.items.length > 0 && (
-                      <View style={styles.itemsList}>
-                        {item.items.map((it, idx) => (
-                          <Text key={idx} style={styles.itemText}>
-                            • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
-                          </Text>
-                        ))}
-                      </View>
-                    )}
-                    {item.special_note ? (
-                      <View style={styles.detailRow}>
-                         <Text style={styles.detailLabel}>Note</Text>
-                         <Text style={styles.detailValue}>{item.special_note}</Text>
-                      </View>
-                    ) : null}
-                    {item.status === 'ready' && (
-                      <View style={[styles.detailRow, { backgroundColor: isDark ? '#1A3320' : '#E8F5E9', padding: 8, borderRadius: 8, marginTop: 4 }]}>
-                        <Text style={[styles.detailLabel, { color: isDark ? '#81C784' : '#4CAF50' }]}>Status</Text>
-                        <Text style={[styles.detailValue, { color: isDark ? '#81C784' : '#4CAF50' }]}>Waiting for student</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                  {action && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: action.color, flex: 1, marginTop: 0 }]}
-                      onPress={() => updateStatus(item.order_id, action.next)}>
-                      <Text style={styles.actionBtnText}>{action.label}</Text>
-                    </TouchableOpacity>
-                  )}
-                  {item.status === 'pending' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: '#F44336', flex: 1, marginTop: 0 }]}
-                      onPress={() => rejectOrder(item.order_id)}>
-                      <Text style={styles.actionBtnText}>Reject</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {item.status === 'ready' && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#607D8B', marginTop: 8 }]}
-                    onPress={() => openCollectModal(item)}>
-                    <Text style={styles.actionBtnText}>🔐 Verify & Collect</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🎉</Text>
-              <Text style={styles.emptyText}>No orders here!</Text>
-              <Text style={styles.emptySub}>Pull down to refresh</Text>
-            </View>
-          }
-        />
-      )}
+      <FlatList
+        data={filtered}
+        keyExtractor={item => item.order_id.toString()}
+        renderItem={renderOrder}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
+        contentContainerStyle={styles.listBody}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Ionicons name="shield-outline" size={80} color="rgba(255,255,255,0.05)" />
+            <Text style={styles.emptyTitle}>Queue Optimized</Text>
+            <Text style={styles.emptySub}>Pipeline is currently clear with no pending operations.</Text>
+          </View>
+        }
+      />
 
       <Modal visible={collectModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Verify Pickup Code</Text>
-            <Text style={styles.modalSubtitle}>
-              Ask the student to show their pickup code and enter it below
-            </Text>
+        <BlurView intensity={80} tint="dark" style={styles.modalBack}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Authentication Hub</Text>
+            <Text style={styles.modalSub}>Secure credential entry for pickup authorization.</Text>
 
-            <View style={styles.orderInfoBox}>
-              <Text style={styles.orderInfoText}>Order #{selectedOrder?.order_id}</Text>
-              <Text style={styles.orderInfoName}>{selectedOrder?.name}</Text>
-              <Text style={styles.orderInfoAmount}>₹{selectedOrder?.total_amount}</Text>
+            <View style={styles.modalCard}>
+              <Text style={styles.mcName}>{selectedOrder?.name}</Text>
+              <Text style={styles.mcId}>TRANSACTION #MS-{selectedOrder?.order_id}</Text>
             </View>
 
             <TextInput
-              style={styles.codeInput}
-              placeholder="Enter 6-digit pickup code"
-              placeholderTextColor={colors.textSecondary}
+              style={styles.mcInput}
+              placeholder="000 000"
+              placeholderTextColor="rgba(255,255,255,0.1)"
               value={enteredCode}
               onChangeText={setEnteredCode}
               keyboardType="number-pad"
               maxLength={6}
+              autoFocus
             />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setCollectModal(false);
-                  setEnteredCode('');
-                }}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setCollectModal(false)}>
+                <Text style={styles.cancelText}>ABORT</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.verifyBtn, verifying && { backgroundColor: '#aaa' }]}
-                onPress={verifyAndCollect}
-                disabled={verifying}>
-                <Text style={styles.verifyBtnText}>
-                  {verifying ? 'Verifying...' : 'Verify & Collect'}
-                </Text>
+              <TouchableOpacity style={styles.modalConfirm} onPress={verifyAndCollect}>
+                <LinearGradient colors={['#FF5722', '#E64A19']} style={styles.confirmIn}>
+                  {verifying ? <ActivityIndicator color="#FFF" /> : <Text style={styles.confirmText}>AUTHENTICATE</Text>}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </BlurView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
-  orderCount: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, backgroundColor: colors.card },
-  filterRow: { backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  filterBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.inputBg, marginRight: 8 },
-  filterBtnActive: { backgroundColor: colors.primary },
-  filterText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-  filterTextActive: { color: '#fff' },
-  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2, borderWidth: 1, borderColor: colors.border },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  orderIdRow: { gap: 8 },
-  orderId: { fontSize: 16, fontWeight: 'bold', color: colors.text },
-  orderTime: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, gap: 4, alignSelf: 'flex-start' },
-  statusIcon: { fontSize: 12 },
-  statusText: { fontSize: 12, fontWeight: 'bold' },
-  cardBody: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 12, gap: 12 },
-  studentRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
-  studentName: { fontSize: 14, fontWeight: '600', color: colors.text },
-  studentEmail: { fontSize: 12, color: colors.textSecondary },
-  orderDetails: { backgroundColor: colors.inputBg, borderRadius: 10, padding: 12, gap: 6 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  detailLabel: { fontSize: 13, color: colors.textSecondary },
-  detailValue: { fontSize: 13, fontWeight: '600', color: colors.text },
-  itemsList: { backgroundColor: colors.background, padding: 10, borderRadius: 8, marginVertical: 4 },
-  itemText: { fontSize: 13, color: colors.text, marginBottom: 4 },
-  actionBtn: { padding: 13, borderRadius: 12, alignItems: 'center', marginTop: 12 },
-  actionBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
-  emptySub: { color: colors.textSecondary, fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
-  modalSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 20, lineHeight: 18 },
-  orderInfoBox: { backgroundColor: colors.inputBg, borderRadius: 12, padding: 14, marginBottom: 16, alignItems: 'center' },
-  orderInfoText: { fontSize: 13, color: colors.textSecondary },
-  orderInfoName: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 4 },
-  orderInfoAmount: { fontSize: 15, color: colors.primary, fontWeight: 'bold', marginTop: 4 },
-  codeInput: { borderWidth: 2, borderColor: colors.primary, borderRadius: 12, padding: 16, fontSize: 24, fontWeight: 'bold', letterSpacing: 8, textAlign: 'center', color: colors.text, backgroundColor: colors.inputBg, marginBottom: 20 },
-  modalButtons: { flexDirection: 'row', gap: 12 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
-  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
-  verifyBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.success, alignItems: 'center' },
-  verifyBtnText: { color: '#fff', fontWeight: 'bold' },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F12' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingVertical: 15,
+    paddingTop: RNStatusBar.currentHeight + 10,
+    zIndex: 10
+  },
+  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
+  headerText: { alignItems: 'center' },
+  headerSub: { fontSize: 9, fontWeight: '900', color: '#FF5722', letterSpacing: 2.5, marginBottom: 4 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  statsBadge: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255, 87, 34, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 87, 34, 0.2)' },
+  statsCount: { color: '#FF5722', fontSize: 16, fontWeight: '900' },
+
+  filterBar: { marginBottom: 15, marginTop: 10 },
+  filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  filterTabActive: { backgroundColor: 'rgba(255, 87, 34, 0.15)', borderColor: 'rgba(255, 87, 34, 0.3)' },
+  filterTabText: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1 },
+  filterTabActiveText: { color: '#FF5722' },
+
+  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
+  orderCard: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', height: 210, justifyContent: 'space-between' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, paddingBottom: 8 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusText: { fontSize: 8, fontWeight: '900' },
+  orderId: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.2)' },
+
+  cardInfo: { paddingHorizontal: 12, flex: 1 },
+  studentName: { fontSize: 14, fontWeight: '800', color: '#FFF' },
+  itemSummary: { marginTop: 6 },
+  itemText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 },
+  moreItems: { fontSize: 10, color: '#FF5722', fontWeight: '800', marginTop: 2 },
+
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.02)' },
+  orderAmount: { fontSize: 16, fontWeight: '900', color: '#FFF' },
+  slotText: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' },
+
+  actionSection: { flexDirection: 'row', gap: 8, padding: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  primaryAction: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  rejectMini: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255, 82, 82, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 82, 82, 0.2)' },
+
+  emptyWrap: { alignItems: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 20, fontWeight: '900', color: '#FFF', marginTop: 20 },
+  emptySub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 20 },
+
+  modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1C1C24', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  modalTitle: { fontSize: 24, fontWeight: '900', color: '#FFF' },
+  modalSub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginTop: 8, marginBottom: 25 },
+  modalCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mcName: { fontSize: 18, fontWeight: '900', color: '#FFF' },
+  mcId: { fontSize: 10, fontWeight: '800', color: '#FF5722', marginTop: 4, letterSpacing: 1 },
+  mcInput: { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 20, fontSize: 32, fontWeight: '900', textAlign: 'center', color: '#FFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 25, letterSpacing: 10 },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalCancel: { flex: 1, paddingVertical: 18, alignItems: 'center' },
+  modalConfirm: { flex: 2, borderRadius: 16, overflow: 'hidden' },
+  confirmIn: { flex: 1, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
+  confirmText: { color: '#FFF', fontWeight: '900', fontSize: 16 }
 });

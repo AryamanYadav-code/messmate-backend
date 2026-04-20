@@ -27,7 +27,7 @@ export default function Skeleton({ width, height, borderRadius = 8, style }) {
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [isDark ? 0.3 : 0.5, isDark ? 0.7 : 1],
+    outputRange: [isDark ? 0.3 : 0.4, isDark ? 0.6 : 0.9],
   });
 
   return (
@@ -38,7 +38,7 @@ export default function Skeleton({ width, height, borderRadius = 8, style }) {
           width,
           height,
           borderRadius,
-          backgroundColor: isDark ? '#2C2C2C' : '#E1E9EE',
+          backgroundColor: isDark ? '#333333' : '#EBEBEB',
           opacity,
         },
         style,

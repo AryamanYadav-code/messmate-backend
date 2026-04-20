@@ -87,32 +87,128 @@ router.get('/stats', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get all students - Superadmin only
+// Get all students (searchable) - Superadmin only
 router.get('/students', verifySuperAdmin, async (req, res) => {
+  const { search } = req.query;
   try {
-    const result = await db.query(
-      'SELECT user_id, name, email, wallet_balance, is_verified, is_active, push_token, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
-      ['student']
-    );
+    let query = `
+      SELECT 
+        u.user_id, 
+        COALESCE(u.name, 'Registered Student') as name, 
+        u.email, 
+        u.wallet_balance, 
+        u.is_verified, 
+        u.is_active, 
+        u.push_token, 
+        u.created_at,
+        COUNT(o.order_id) as total_orders
+      FROM users u
+      LEFT JOIN orders o ON u.user_id = o.user_id
+      WHERE u.role = $1
+    `;
+    const params = ['student'];
+
+    if (search) {
+      query += ` AND (u.name ILIKE $2 OR u.email ILIKE $2 OR u.user_id::text ILIKE $2)`;
+      params.push(`%${search}%`);
+    }
+
+    query += ` GROUP BY u.user_id ORDER BY u.created_at DESC`;
+
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Remove student - Superadmin only
-router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
+// Adjust student balance - Superadmin only
+router.post('/students/:id/adjust-balance', verifySuperAdmin, async (req, res) => {
+  const { amount } = req.body;
+  if (isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });
+
   try {
-    await db.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
-    res.json({ message: 'Student removed!' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const userId = req.params.id;
+    await db.query(
+      'UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2 AND role = $3',
+      [amount, userId, 'student']
+    );
+
+    // Track the transaction
+    await db.query(
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method) VALUES ($1, $2, $3, $4)',
+      [userId, Math.abs(amount), amount > 0 ? 'credit' : 'debit', 'Admin Adjust']
+    );
+
+    res.json({ message: 'Balance adjusted successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Get all staff (sub-admins) - Superadmin only
-router.get('/staff', verifySuperAdmin, async (req, res) => {
+// Remove or Deactivate student - Superadmin only
+router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
+  const { mode = 'soft' } = req.query; // 'soft' (deactivate) or 'hard' (delete)
+  const client = await db.getClient();
+  
   try {
-    const result = await db.query(
-      'SELECT user_id, name, email, push_token, is_active, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
-      ['admin']
-    );
+    if (mode === 'soft') {
+      await db.query('UPDATE users SET is_active = false WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
+      return res.json({ message: 'Student account deactivated!' });
+    }
+
+    if (mode === 'hard') {
+      await client.query('BEGIN');
+      
+      // Cascade delete: 
+      // 1. user_push_tokens
+      // 2. feedback
+      // 3. order_items (via orders)
+      // 4. orders
+      // 5. wallet_transactions
+      // 6. user_sessions
+      // 7. users
+
+      await client.query('DELETE FROM user_push_tokens WHERE user_id = $1', [req.params.id]);
+      await client.query('DELETE FROM feedback WHERE user_id = $1', [req.params.id]);
+      
+      // Delete order_items associated with user's orders
+      await client.query(`
+        DELETE FROM order_items 
+        WHERE order_id IN (SELECT order_id FROM orders WHERE user_id = $1)
+      `, [req.params.id]);
+
+      await client.query('DELETE FROM orders WHERE user_id = $1', [req.params.id]);
+      await client.query('DELETE FROM wallet_transactions WHERE user_id = $1', [req.params.id]);
+      await client.query('DELETE FROM user_sessions WHERE user_id = $1', [req.params.id]);
+      await client.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
+      
+      await client.query('COMMIT');
+      return res.json({ message: 'Student and all related records deleted permanently!' });
+    }
+
+    res.status(400).json({ error: 'Invalid deletion mode' });
+  } catch (err) { 
+    if (client) await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message }); 
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// Get all staff (searchable/sub-admins) - Superadmin only
+router.get('/staff', verifySuperAdmin, async (req, res) => {
+  const { search } = req.query;
+  try {
+    let query = `SELECT user_id, name, email, push_token, is_active, created_at FROM users WHERE role = $1`;
+    const params = ['admin'];
+
+    if (search) {
+      query += ` AND (name ILIKE $2 OR email ILIKE $2)`;
+      params.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY created_at DESC`;
+
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -206,12 +302,12 @@ router.post('/staff', verifySuperAdmin, async (req, res) => {
 // Send test notification
 router.post('/test-notification', async (req, res) => {
   const { user_id } = req.body;
-  const { sendPushNotification } = require('../utils/notifications');
+  const { broadcastPushNotification } = require('../utils/notifications');
   
   console.log(`[Test Notif] Request for user_id: ${user_id}`);
   
   try {
-    const result = await db.query('SELECT push_token, name, email FROM users WHERE user_id = $1', [user_id]);
+    const result = await db.query('SELECT name, email FROM users WHERE user_id = $1', [user_id]);
     if (result.rows.length === 0) {
       console.log(`[Test Notif] User ${user_id} not found`);
       return res.status(404).json({ error: 'User not found' });
@@ -220,24 +316,14 @@ router.post('/test-notification', async (req, res) => {
     const user = result.rows[0];
     console.log(`[Test Notif] Target: ${user.name} (${user.email})`);
     
-    if (!user.push_token) {
-      console.log(`[Test Notif] FAILED: No push token registered for ${user.name}`);
-      return res.status(400).json({ error: 'No push token for this user' });
-    }
-    
-    console.log(`[Test Notif] Sending to token: ${user.push_token}`);
-    
-    // MINIMAL PAYLOAD FOR DEBUGGING
-    await sendPushNotification(
-      user.push_token,
-      'Test Bell',
-      `For ${user.name}`,
+    await broadcastPushNotification(
+      user_id,
+      'Test Bell 🔔',
+      `For ${user.name} (Multi-device Test)`,
     );
     
-    // Explicitly return the token in the JSON response
     return res.json({ 
-      message: 'Test notification sent!', 
-      token: user.push_token,
+      message: 'Test notification broadcast sent!', 
       target: user.name 
     });
   } catch (err) { 

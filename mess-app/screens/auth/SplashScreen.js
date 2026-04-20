@@ -9,27 +9,25 @@ const { width } = Dimensions.get('window');
 export default function SplashScreen({ navigation }) {
     const { colors, isDark } = useTheme();
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.8)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
     useEffect(() => {
-        // Start animation
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 1000,
+                duration: 1200,
                 useNativeDriver: true,
             }),
             Animated.spring(scaleAnim, {
                 toValue: 1,
-                friction: 4,
+                friction: 6,
                 useNativeDriver: true,
             })
         ]).start();
 
-        // Check auth and navigate after 2.5 seconds
         const timer = setTimeout(() => {
             checkAuth();
-        }, 2500);
+        }, 2200);
 
         return () => clearTimeout(timer);
     }, []);
@@ -43,7 +41,6 @@ export default function SplashScreen({ navigation }) {
             if (!token) {
                 navigation.replace('Login');
             } else {
-                // Sync push token
                 if (userId) savePushToken(userId);
                 
                 if (role === 'admin' || role === 'superadmin') {
@@ -53,25 +50,26 @@ export default function SplashScreen({ navigation }) {
                 }
             }
         } catch (error) {
-            console.error('Splash Screen Auth Check Error:', error);
             navigation.replace('Login');
         }
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
-                <Image 
-                    source={require('../../assets/images/icon.png')} 
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-                <Text style={[styles.title, { color: isDark ? '#FFFFFF' : '#6C63FF' }]}>MessMate</Text>
-                <Text style={styles.tagline}>Hassle-free meal management</Text>
+                <View style={styles.logoContainer}>
+                    <Image 
+                        source={require('../../assets/images/messmate_logo.jpg')} 
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
+                <Text style={[styles.title, { color: colors.text }]}>MessMate</Text>
+                <Text style={[styles.tagline, { color: colors.textSecondary }]}>Modernizing your mess experience</Text>
             </Animated.View>
             
             <View style={styles.footer}>
-                <Text style={styles.footerText}>Version 1.0.0</Text>
+                <Text style={styles.footerText}>X-UPLIFT v1.2</Text>
             </View>
         </View>
     );
@@ -83,29 +81,37 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    logoContainer: {
+        width: 140,
+        height: 140,
+        backgroundColor: 'rgba(255, 87, 34, 0.05)',
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
     logo: {
-        width: width * 0.4,
-        height: width * 0.4,
-        marginBottom: 20,
+        width: 100,
+        height: 100,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        letterSpacing: 1,
+        fontSize: 38,
+        fontWeight: '900',
+        letterSpacing: -1,
     },
     tagline: {
-        fontSize: 14,
-        color: '#888',
-        marginTop: 8,
-        fontWeight: '500',
+        fontSize: 15,
+        marginTop: 6,
+        fontWeight: '600',
     },
     footer: {
         position: 'absolute',
-        bottom: 40,
+        bottom: 50,
     },
     footerText: {
-        fontSize: 12,
-        color: '#AAA',
+        fontSize: 11,
+        color: '#777',
         fontWeight: 'bold',
+        letterSpacing: 2,
     }
 });

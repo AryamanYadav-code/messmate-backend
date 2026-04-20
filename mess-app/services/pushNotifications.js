@@ -65,7 +65,7 @@ export async function registerForPushNotifications() {
   }
 }
 
-export async function savePushToken(userId) {
+export async function savePushToken(userId, remove = false) {
   try {
     if (!userId) return;
 
@@ -75,27 +75,26 @@ export async function savePushToken(userId) {
     }
 
     const notificationsEnabled = await AsyncStorage.getItem('notifications');
-    if (notificationsEnabled === 'false') return;
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    console.log('Existing notification status:', existingStatus);
+    if (notificationsEnabled === 'false' && !remove) return; // Don't register if disabled, but allow removal
 
     const pushToken = await registerForPushNotifications();
-    console.log('Generated push token:', pushToken);
+    console.log('Push token for operation:', pushToken);
 
     if (!pushToken) {
+      if (remove) return { ok: true }; // Already no token
       throw new Error('Push token not generated. Check app notification permission and device support.');
     }
 
     const response = await api.post('/auth/save-token', {
       user_id: parsedUserId,
       push_token: pushToken,
+      remove: remove
     });
 
     return { ok: true, token: pushToken, response: response.data };
   } catch (error) {
     const message = error?.response?.data?.error || error?.message || 'Unknown push token save error';
-    console.log('Failed to save push token:', message);
+    console.log('Failed to process push token:', message);
     return { ok: false, error: message };
   }
 }

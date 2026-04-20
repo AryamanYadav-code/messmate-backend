@@ -25,6 +25,8 @@ function Sanitize-Image($path) {
     }
 }
 
+Sanitize-Image "E:\PROJECT_ALPHA\mess-app\assets\images\icon_new.png"
+Sanitize-Image "E:\PROJECT_ALPHA\mess-app\assets\images\splash_new.png"
 Sanitize-Image "E:\PROJECT_ALPHA\mess-app\assets\images\icon.png"
 Sanitize-Image "E:\PROJECT_ALPHA\mess-app\assets\images\splash-icon.png"
 Sanitize-Image "E:\PROJECT_ALPHA\mess-app\assets\images\android-icon-foreground.png"

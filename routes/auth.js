@@ -164,7 +164,10 @@ router.post('/google', async (req, res) => {
   try {
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID, 
+      audience: [
+        process.env.GOOGLE_CLIENT_ID,
+        '344290150113-e75lk49v36hb3hlei2410sb40s9s2kgl.apps.googleusercontent.com' // Ensure matches both env and hardcoded if different
+      ], 
     });
     const payload = ticket.getPayload();
     const { email, name } = payload;
@@ -478,23 +481,24 @@ router.post('/change-password', async (req, res) => {
 });
 
 router.post('/save-token', async (req, res) => {
-  const { user_id, push_token } = req.body;
+  const { user_id, push_token, remove } = req.body;
   try {
     if (!user_id) {
       return res.status(400).json({ error: 'user_id is required' });
     }
 
-    if (push_token === null) {
-      const result = await db.query(
-        'UPDATE users SET push_token = NULL WHERE user_id = $1 RETURNING user_id',
-        [user_id]
-      );
-      if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
-      return res.json({ message: 'Notifications disabled (token removed)', userId: result.rows[0].user_id });
-    }
-
-    if (!push_token) {
-      return res.status(400).json({ error: 'push_token is required or must be null' });
+    // If remove flag is present or push_token is null, we unregister the specific token
+    if (remove || push_token === null) {
+      if (!push_token) {
+        // If they just send push_token: null, we'll clear all (per legacy behavior)
+        await db.query('DELETE FROM user_push_tokens WHERE user_id = $1', [user_id]);
+        await db.query('UPDATE users SET push_token = NULL WHERE user_id = $1', [user_id]);
+        return res.json({ message: 'All notification tokens removed for user', userId: user_id });
+      } else {
+        // Unregister specific token
+        await db.query('DELETE FROM user_push_tokens WHERE user_id = $1 AND push_token = $2', [user_id, push_token]);
+        return res.json({ message: 'Specific device token removed', userId: user_id });
+      }
     }
 
     const isExpoToken = /^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/.test(push_token);
@@ -502,17 +506,20 @@ router.post('/save-token', async (req, res) => {
       return res.status(400).json({ error: 'Invalid Expo push token format' });
     }
 
-    const result = await db.query(
-      'UPDATE users SET push_token = $1 WHERE user_id = $2 RETURNING user_id',
-      [push_token, user_id]
+    // Save/Update in the multi-device table
+    await db.query(
+      'INSERT INTO user_push_tokens (user_id, push_token, last_used_at) VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (user_id, push_token) DO UPDATE SET last_used_at = CURRENT_TIMESTAMP',
+      [user_id, push_token]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found for push token save' });
-    }
+    // Keep the legacy column updated for backward compatibility (optional but safer)
+    await db.query('UPDATE users SET push_token = $1 WHERE user_id = $2', [push_token, user_id]);
 
-    res.json({ message: 'Token saved!', userId: result.rows[0].user_id });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    res.json({ message: 'Token saved for device!', userId: user_id });
+  } catch (err) { 
+    console.error('Save Token Error:', err);
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 module.exports = router;

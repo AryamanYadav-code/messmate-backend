@@ -1,33 +1,91 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  SafeAreaView, 
+  Alert, 
+  Dimensions, 
+  Animated, 
+  ActivityIndicator,
+  StatusBar
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
-import Skeleton from '../../components/Skeleton';
+
+const { width } = Dimensions.get('window');
+
+const StatBox = ({ label, value, icon, color, index }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, delay: 400 + (index * 100), useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 20, delay: 400 + (index * 100), useNativeDriver: true })
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.statBox, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <BlurView intensity={15} tint="dark" style={styles.statIn}>
+        <View style={[styles.statIconWrap, { backgroundColor: color + '15' }]}>
+          <Ionicons name={icon} size={18} color={color} />
+        </View>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </BlurView>
+    </Animated.View>
+  );
+};
+
+const ActionCard = ({ title, sub, icon, onPress, badge, color, index }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, delay: 600 + (index * 80), useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 20, delay: 600 + (index * 80), useNativeDriver: true })
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], width: (width - 52) / 2, marginBottom: 12 }}>
+      <TouchableOpacity style={styles.actionCard} onPress={onPress}>
+        <BlurView intensity={12} tint="dark" style={styles.actionBlur}>
+          <View style={[styles.actionIconWrap, { backgroundColor: color + '15', borderColor: color + '30' }]}>
+            <Ionicons name={icon} size={26} color={color} />
+          </View>
+          
+          <Text style={styles.actionTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.actionSub} numberOfLines={2}>{sub}</Text>
+          
+          {badge > 0 && (
+            <View style={[styles.badgeWrap, { backgroundColor: color }]}>
+              <Text style={styles.badgeText}>{badge}</Text>
+            </View>
+          )}
+        </BlurView>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function AdminDashScreen({ navigation }) {
-  const { colors } = useTheme();
-  const styles = getStyles(colors);
-
+  const { colors, isDark } = useTheme();
   const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0, scheduled_count: 0 });
   const [pendingCount, setPendingCount] = useState(0);
   const [userRole, setUserRole] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
-  const isSuperAdmin = userRole === 'superadmin';
-  const mountedRef = useRef(false);
-
-  useEffect(() => {
-    mountedRef.current = true;
-
-    AsyncStorage.getItem('role').then((role) => {
-      if (mountedRef.current) setUserRole(role || '');
-    });
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   useFocusEffect(useCallback(() => {
     const init = async () => {
@@ -36,28 +94,28 @@ export default function AdminDashScreen({ navigation }) {
       setLoading(false);
     };
     init();
+    
+    AsyncStorage.multiGet(['role', 'name']).then((values) => {
+      setUserRole(values[0][1] || '');
+      setName(values[1][1] || 'Administrator');
+    });
 
     const interval = setInterval(() => {
       fetchStats();
       fetchPending();
-    }, 10000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    }, 15000);
+    return () => clearInterval(interval);
   }, []));
 
   const fetchStats = async () => {
     try {
       const res = await api.get('/admin/stats');
-      if (mountedRef.current) {
-        setStats({
-          total_orders: res.data?.total_orders || 0,
-          total_users: res.data?.total_users || 0,
-          revenue: res.data?.revenue || 0,
-          scheduled_count: res.data?.scheduled_count || 0,
-        });
-      }
+      setStats({
+        total_orders: res.data?.total_orders || 0,
+        total_users: res.data?.total_users || 0,
+        revenue: res.data?.revenue || 0,
+        scheduled_count: res.data?.scheduled_count || 0,
+      });
     } catch (err) { console.log(err); }
   };
 
@@ -65,18 +123,15 @@ export default function AdminDashScreen({ navigation }) {
     try {
       const res = await api.get('/orders/admin/pending');
       const orders = Array.isArray(res.data) ? res.data : [];
-      // The backend route '/admin/pending' already returns only active orders
-      // (pending, approved, preparing, ready). We should count all of them.
-      const pending = orders.length;
-      if (mountedRef.current) setPendingCount(pending);
+      setPendingCount(orders.length);
     } catch (err) { console.log(err); }
   };
 
-  const logout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: async () => {
-        try { await api.post('/auth/logout'); } catch (err) { console.log(err); }
+  const logout = () => {
+    Alert.alert('Session Termination', 'Terminate secure administrative session?', [
+      { text: 'ABORT', style: 'cancel' },
+      { text: 'TERMINATE', style: 'destructive', onPress: async () => {
+        try { await api.post('/auth/logout'); } catch (err) {}
         await AsyncStorage.clear();
         navigation.replace('Login');
       }}
@@ -84,235 +139,221 @@ export default function AdminDashScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerSub}>Welcome back</Text>
-          <Text style={styles.headerTitle}>Admin Panel</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#0F0F12', '#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
+      
+      {/* Background Orbs */}
+      <View style={[styles.orb, { top: -100, left: -100, backgroundColor: 'rgba(255, 87, 34, 0.15)' }]} />
+      <View style={[styles.orb, { bottom: -150, right: -150, backgroundColor: 'rgba(255, 152, 0, 0.1)' }]} />
+      
+      <View style={styles.meshHeader}>
+        <LinearGradient 
+          colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
+          style={styles.meshGradient} 
+        />
+        <SafeAreaView>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greet}>SYSTEM PROTOCOL ALPHA</Text>
+              <Text style={styles.adminName}>{name.toUpperCase()}</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
+                 <BlurView intensity={20} tint="dark" style={styles.iconBlur}>
+                   <Ionicons name="cog-outline" size={20} color="#FFF" />
+                 </BlurView>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, styles.logoutBtn]} onPress={logout}>
+                 <BlurView intensity={20} tint="dark" style={styles.iconBlur}>
+                   <Ionicons name="power-outline" size={20} color="#FF5252" />
+                 </BlurView>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.mainStatRow}>
+            <BlurView intensity={20} tint="dark" style={styles.mainStatCard}>
+               <View>
+                  <Text style={styles.mainStatLabel}>GROSS VOLUME ARCHIVE</Text>
+                  <View style={styles.revenueRow}>
+                     <Text style={styles.currency}>₹</Text>
+                     <Text style={styles.mainStatValue}>{stats.revenue.toLocaleString()}</Text>
+                  </View>
+               </View>
+               <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.trendingWrap}>
+                  <Ionicons name="trending-up" size={20} color="#FFF" />
+               </LinearGradient>
+            </BlurView>
+          </View>
+        </SafeAreaView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {loading ? (
-          <>
-            <View style={styles.statsGrid}>
-              {[1, 2, 3].map(i => (
-                <View key={i} style={styles.statCard}>
-                   <Skeleton width={30} height={30} borderRadius={15} />
-                   <Skeleton width="60%" height={20} style={{ marginVertical: 8 }} />
-                   <Skeleton width="40%" height={12} />
-                </View>
-              ))}
-            </View>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            {[1, 2, 3, 4, 5].map(i => (
-              <View key={i} style={[styles.actionCard, { paddingVertical: 12 }]}>
-                 <Skeleton width={40} height={40} borderRadius={8} />
-                 <View style={{ flex: 1, marginLeft: 15 }}>
-                    <Skeleton width="50%" height={16} />
-                    <Skeleton width="80%" height={12} style={{ marginTop: 8 }} />
-                 </View>
-              </View>
-            ))}
-          </>
-        ) : (
-          <>
-            <View style={styles.statsGrid}>
-              <View style={[styles.statCard, { backgroundColor: '#6C63FF' }]}>
-                <Text style={styles.statIcon}>📦</Text>
-                <Text style={styles.statNumWhite}>{stats.total_orders}</Text>
-                <Text style={styles.statLabelWhite}>Total Orders</Text>
-              </View>
+      <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
+          <View style={styles.statGrid}>
+             <StatBox index={0} icon="cube-outline" label="LOGGED ORDERS" value={stats.total_orders} color="#64B5F6" />
+             <StatBox index={1} icon="time-outline" label="LIVE QUEUE" value={pendingCount} color="#FFD54F" />
+          </View>
 
-              {isSuperAdmin && (
-                <View style={styles.statCard}>
-                  <Text style={styles.statIcon}>🎓</Text>
-                  <Text style={styles.statNum}>{stats.total_users}</Text>
-                  <Text style={styles.statLabel}>Students</Text>
-                </View>
-              )}
+          <View style={styles.statGrid}>
+             <StatBox index={2} icon="people-outline" label="SYSTEM USERS" value={stats.total_users} color="#81C784" />
+             <StatBox index={3} icon="calendar-outline" label="PRE-ORDERS" value={stats.scheduled_count} color="#BA68C8" />
+          </View>
 
-              {isSuperAdmin && (
-                <View style={styles.statCard}>
-                  <Text style={styles.statIcon}>💰</Text>
-                  <Text style={styles.statNum}>₹{stats.revenue || 0}</Text>
-                  <Text style={styles.statLabel}>Revenue</Text>
-                </View>
-              )}
+          <Text style={styles.sectionTitle}>COMMAND PROTOCOLS</Text>
+          
+          <View style={styles.actionGrid}>
+             <ActionCard 
+               index={0}
+               title="Tactical Orders" 
+               sub="Verification sync" 
+               icon="flash-outline" 
+               color="#FF5722" 
+               badge={pendingCount}
+               onPress={() => navigation.navigate('OrderQueue')}
+             />
+             <ActionCard 
+               index={1}
+               title="Inventory" 
+               sub="Menu & availability" 
+               icon="restaurant-outline" 
+               color="#448AFF" 
+               onPress={() => navigation.navigate('MenuManager')}
+             />
+             <ActionCard 
+               index={2}
+               title="Analytics" 
+               sub="Operational insights" 
+               icon="stats-chart-outline" 
+               color="#9C27B0" 
+               onPress={() => navigation.navigate('Analytics')}
+             />
+             <ActionCard 
+               index={3}
+               title="Personnel" 
+               sub="Operators & staff" 
+               icon="shield-checkmark-outline" 
+               color="#00C853" 
+               onPress={() => navigation.navigate('Staff')}
+             />
+             <ActionCard 
+               index={4}
+               title="User Archive" 
+               sub="Accounts & balance" 
+               icon="people-outline" 
+               color="#00BCD4" 
+               onPress={() => navigation.navigate('Students')}
+             />
+             <ActionCard 
+               index={5}
+               title="Historic Logs" 
+               sub="Transaction registry" 
+               icon="archive-outline" 
+               color="#607D8B" 
+               onPress={() => navigation.navigate('AdminOrderHistory')}
+             />
+             <ActionCard 
+                index={6}
+                title="Ad Manager" 
+                sub="Promo banners" 
+                icon="megaphone-outline" 
+                color="#FF9800" 
+                onPress={() => navigation.navigate('AdManager')}
+              />
+              <ActionCard 
+                index={7}
+                title="Reservations" 
+                sub="Temporal slots" 
+                icon="time-outline" 
+                color="#E91E63" 
+                onPress={() => navigation.navigate('ScheduledOrders')}
+              />
+              <ActionCard 
+                index={8}
+                title="Intelligence" 
+                sub="Signal feedback" 
+                icon="chatbubble-ellipses-outline" 
+                color="#00ACC1" 
+                onPress={() => navigation.navigate('FeedbackView')}
+              />
+          </View>
 
-              <View style={[styles.statCard, pendingCount > 0 && { borderColor: '#FF9800', borderWidth: 2 }]}>
-                <Text style={styles.statIcon}>⏳</Text>
-                <Text style={[styles.statNum, pendingCount > 0 && { color: '#FF9800' }]}>{pendingCount}</Text>
-                <Text style={styles.statLabel}>Pending</Text>
-              </View>
-            </View>
-
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('OrderQueue')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#EEF' }]}>
-                <Text style={styles.actionIconText}>📋</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Order Queue</Text>
-                <Text style={styles.actionSub}>Approve and manage orders</Text>
-              </View>
-              {pendingCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{pendingCount}</Text>
-                </View>
-              )}
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MenuManager')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Text style={styles.actionIconText}>🍽</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Menu Manager</Text>
-                <Text style={styles.actionSub}>Add or remove menu items</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdminOrderHistory')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
-                <Text style={styles.actionIconText}>📜</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Order History</Text>
-                <Text style={styles.actionSub}>View past orders & earnings</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Settings')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Text style={styles.actionIconText}>⚙️</Text>
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Account Settings</Text>
-                <Text style={styles.actionSub}>Manage password & theme</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-
-            {isSuperAdmin && (
-              <>
-                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Students')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={styles.actionIconText}>🎓</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Student Management</Text>
-                    <Text style={styles.actionSub}>View and manage student accounts</Text>
-                  </View>
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.actionCard, stats.scheduled_count > 0 && { borderColor: '#FF9800', borderWidth: 1 }]} onPress={() => navigation.navigate('ScheduledOrders')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={styles.actionIconText}>📅</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Scheduled Orders</Text>
-                    <Text style={styles.actionSub}>View tomorrow's pre-orders</Text>
-                  </View>
-                  {stats.scheduled_count > 0 && (
-                    <View style={[styles.badge, { backgroundColor: '#FF9800' }]}>
-                      <Text style={styles.badgeText}>{stats.scheduled_count}</Text>
-                    </View>
-                  )}
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdManager')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                    <Text style={styles.actionIconText}>📢</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Ad Manager</Text>
-                    <Text style={styles.actionSub}>Upload and manage ads</Text>
-                  </View>
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('FeedbackView')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                    <Text style={styles.actionIconText}>⭐</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Customer Feedback</Text>
-                    <Text style={styles.actionSub}>View ratings and reviews</Text>
-                  </View>
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Staff')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                    <Text style={styles.actionIconText}>👨‍🍳</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Staff Management</Text>
-                    <Text style={styles.actionSub}>Add or remove sub-admins</Text>
-                  </View>
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Analytics')}>
-                  <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-                    <Text style={styles.actionIconText}>📊</Text>
-                  </View>
-                  <View style={styles.actionInfo}>
-                    <Text style={styles.actionTitle}>Analytics Dashboard</Text>
-                    <Text style={styles.actionSub}>Revenue, orders and insights</Text>
-                  </View>
-                  <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </>
-        )}
+          <View style={styles.footer}>
+             <View style={styles.footerLine} />
+             <Text style={styles.footerLegal}>MESSMATE ENTERPRISE OS v3.0.0</Text>
+             <Text style={styles.footerSub}>SECURE ENCRYPTED SESSION ACTIVE</Text>
+          </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {loading && stats.total_users === 0 && (
+        <View style={styles.loadingOverlay}>
+           <ActivityIndicator color="#FF5722" size="large" />
+           <Text style={styles.loadingText}>SYNCING TERMINAL...</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  headerTitle: { color: colors.headerText, fontSize: 22, fontWeight: 'bold' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  settingsBtn: { backgroundColor: 'rgba(255,255,255,0.2)', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-  settingsIcon: { fontSize: 18, alignSelf: 'center' },
-  logoutBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  logoutText: { color: '#fff', fontSize: 13 },
-  content: { padding: 16 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  statCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, width: '47%', elevation: 2 },
-  statIcon: { fontSize: 24, marginBottom: 8 },
-  statNum: { fontSize: 24, fontWeight: 'bold', color: colors.text },
-  statNumWhite: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  statLabelWhite: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
-  actionCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, elevation: 2 },
-  actionIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-  actionIconText: { fontSize: 24 },
-  actionInfo: { flex: 1 },
-  actionTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text },
-  actionSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  badge: { backgroundColor: '#FF9800', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, marginRight: 8 },
-  badgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  arrow: { fontSize: 22, color: colors.border },
-});
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F12' },
+  meshHeader: { paddingBottom: 15, position: 'relative', overflow: 'hidden' },
+  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150 },
+  meshGradient: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    height: 180, 
+    opacity: 0.8 
+  },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 20, 
+    paddingTop: 10,
+    marginBottom: 5
+  },
+  greet: { color: '#FF5722', fontSize: 10, fontWeight: '900', letterSpacing: 3, marginBottom: 4 },
+  adminName: { color: '#FFF', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
+  headerRight: { flexDirection: 'row', gap: 12 },
+  iconBtn: { width: 44, height: 44, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  iconBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  logoutBtn: { borderColor: 'rgba(255,82,82,0.1)' },
+  
+  mainStatRow: { paddingHorizontal: 25, marginTop: 25 },
+  mainStatCard: { padding: 25, borderRadius: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mainStatLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '900', letterSpacing: 2, marginBottom: 8 },
+  revenueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  currency: { color: '#FF5722', fontSize: 18, fontWeight: '900', marginRight: 4 },
+  mainStatValue: { color: '#FFF', fontSize: 36, fontWeight: '900', letterSpacing: -1 },
+  trendingWrap: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
 
+  scrollBody: { padding: 20, paddingBottom: 60 },
+  statGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  statBox: { flex: 1, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  statIn: { padding: 20 },
+  statIconWrap: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  statValue: { fontSize: 22, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  statLabel: { fontSize: 8, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginTop: 4 },
+
+  sectionTitle: { fontSize: 10, fontWeight: '900', color: '#FF5722', letterSpacing: 3, marginTop: 45, marginBottom: 20, textAlign: 'center' },
+
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  actionCard: { width: '100%', borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  actionBlur: { padding: 18, alignItems: 'center', justifyContent: 'center' },
+  actionIconWrap: { width: 52, height: 52, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 14, borderWidth: 1 },
+  actionTitle: { fontSize: 14, fontWeight: '900', color: '#FFF', textAlign: 'center', letterSpacing: -0.2 },
+  actionSub: { fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 4, fontWeight: '700', textAlign: 'center', paddingHorizontal: 10, lineHeight: 12 },
+  badgeWrap: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
+
+  footer: { alignItems: 'center', marginTop: 50, paddingBottom: 20 },
+  footerLine: { width: 40, height: 2, backgroundColor: 'rgba(255,255,255,0.05)', marginBottom: 20 },
+  footerLegal: { color: 'rgba(255,255,255,0.2)', fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  footerSub: { color: 'rgba(255,82,82,0.3)', fontSize: 8, fontWeight: '900', letterSpacing: 1, marginTop: 4 },
+
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0F0F12', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+  loadingText: { color: '#FF5722', fontSize: 10, fontWeight: '900', letterSpacing: 3, marginTop: 20 }
+});

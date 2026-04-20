@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import api from '../../services/api';
@@ -103,7 +102,11 @@ export default function RegisterScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.topSection}>
         <View style={styles.logoBox}>
-          <Text style={styles.logoIcon}>🍱</Text>
+          <Image 
+            source={require('../../assets/images/messmate_logo.jpg')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
         <Text style={styles.appName}>MessMate</Text>
         <Text style={styles.tagline}>Create your account</Text>
@@ -228,8 +231,8 @@ const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary },
   content: { flexGrow: 1 },
   topSection: { alignItems: 'center', paddingTop: 50, paddingBottom: 24 },
-  logoBox: { width: 70, height: 70, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  logoIcon: { fontSize: 36 },
+  logoBox: { width: 70, height: 70, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10, overflow: 'hidden' },
+  logoImage: { width: '100%', height: '100%' },
   appName: { fontSize: 28, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
   tagline: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   card: { flex: 1, backgroundColor: colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 28, paddingTop: 28 },

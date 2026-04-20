@@ -1,4 +1,4 @@
-const { sendPushNotification } = require('../utils/notifications');
+const { broadcastPushNotification } = require('../utils/notifications');
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
@@ -116,18 +116,30 @@ router.get('/admin/pending', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Get order history for admin with search
 router.get('/admin/history', async (req, res) => {
+  const { search, limit = 100 } = req.query;
   try {
-    const result = await db.query(
-      `SELECT o.*, u.name, u.email,
+    let query = `
+      SELECT o.*, u.name, u.email,
         (SELECT json_agg(json_build_object('item_id', oi.item_id, 'quantity', oi.quantity, 'price', oi.price_at_order, 'name', m.name))
          FROM order_items oi JOIN menu_items m ON oi.item_id = m.item_id
          WHERE oi.order_id = o.order_id) as items
-       FROM orders o
-       JOIN users u ON o.user_id = u.user_id
-       WHERE o.status IN ('delivered', 'cancelled', 'rejected')
-       ORDER BY o.created_at DESC`
-    );
+      FROM orders o
+      JOIN users u ON o.user_id = u.user_id
+      WHERE o.status IN ('delivered', 'cancelled', 'rejected')
+    `;
+    const params = [];
+
+    if (search) {
+      query += ` AND (o.order_id::text ILIKE $1 OR u.name ILIKE $1 OR u.email ILIKE $1)`;
+      params.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY o.created_at DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -167,9 +179,9 @@ router.put('/:order_id/status', async (req, res) => {
       rejected: { title: '❌ Order Rejected', body: 'Your order was rejected. Please contact the mess staff.' }
     };
 
-    if (messages[status] && order?.push_token) {
-      await sendPushNotification(
-        order.push_token,
+    if (messages[status]) {
+      await broadcastPushNotification(
+        order.user_id,
         messages[status].title,
         messages[status].body,
         { order_id: req.params.order_id, status }

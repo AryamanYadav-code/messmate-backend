@@ -1,17 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, 
+  SafeAreaView, RefreshControl, Dimensions, Animated, 
+  StatusBar as RNStatusBar 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
-const SLOT_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍿' };
+const { width } = Dimensions.get('window');
+
+const SLOT_CONFIG = {
+  breakfast: { icon: '🌅', color: '#FFD54F' },
+  lunch: { icon: '☀️', color: '#64B5F6' },
+  dinner: { icon: '🌙', color: '#BA68C8' },
+  snacks: { icon: '🍿', color: '#FF8A65' }
+};
 
 export default function ScheduledOrdersScreen({ navigation }) {
   const { colors, isDark } = useTheme();
-  const styles = getStyles(colors, isDark);
   const [orders, setOrders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -63,121 +81,166 @@ export default function ScheduledOrdersScreen({ navigation }) {
       if (!groups[date]) groups[date] = [];
       groups[date].push(order);
     });
-    return Object.entries(groups);
+    return Object.entries(groups).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+  };
+
+  const renderOrder = (order) => {
+    const slot = SLOT_CONFIG[order.meal_slot] || { icon: '🍴', color: '#FFF' };
+    
+    return (
+      <View key={order.order_id} style={styles.orderTile}>
+        <BlurView intensity={20} tint="dark" style={styles.tileBlur}>
+          <View style={styles.tileHeader}>
+            <View style={[styles.slotMini, { backgroundColor: slot.color + '15' }]}>
+               <Text style={[styles.slotIconMini]}>{slot.icon}</Text>
+            </View>
+            <Text style={styles.orderIdMini}>#{order.order_id}</Text>
+          </View>
+
+          <View style={styles.tileBody}>
+            <Text style={styles.studentNameMini} numberOfLines={1}>{order.name}</Text>
+            
+            <View style={styles.itemsSummary}>
+               {order.items?.slice(0, 2).map((it, idx) => (
+                 <Text key={idx} style={styles.itemTextMini} numberOfLines={1}>
+                   {it.quantity}x {it.name}
+                 </Text>
+               ))}
+               {order.items?.length > 2 && (
+                 <Text style={styles.moreItemsText}>+{order.items.length - 2} more</Text>
+               )}
+            </View>
+          </View>
+
+          <View style={styles.tileFooter}>
+            <Text style={styles.amountMini}>₹{order.total_amount}</Text>
+            <View style={styles.miniActions}>
+               <TouchableOpacity 
+                 style={styles.miniBtnReject} 
+                 onPress={() => rejectOrder(order.order_id)}
+               >
+                 <Ionicons name="close" size={14} color="#FF5252" />
+               </TouchableOpacity>
+               <TouchableOpacity 
+                 style={styles.miniBtnApprove}
+                 onPress={() => approveOrder(order.order_id)}
+               >
+                 <Ionicons name="checkmark" size={14} color="#FFF" />
+               </TouchableOpacity>
+            </View>
+          </View>
+        </BlurView>
+      </View>
+    );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scheduled Orders</Text>
-        <Text style={styles.count}>{orders.length} total</Text>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <RNStatusBar barStyle="light-content" />
+      <LinearGradient colors={['#1F1F2E', '#0F0F12']} style={StyleSheet.absoluteFill} />
+
+      <View style={styles.meshHeader}>
+        <LinearGradient 
+          colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
+          style={styles.headerMesh} 
+        />
+        <SafeAreaView>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+               <BlurView intensity={20} tint="dark" style={styles.blurBtn}>
+                  <Ionicons name="chevron-back" size={20} color="#FFF" />
+               </BlurView>
+            </TouchableOpacity>
+            <View style={{ alignItems: 'center' }}>
+               <Text style={styles.headerSubtitle}>TEMPORAL REGISTRY</Text>
+               <Text style={styles.headerTitle}>Pre-Orders</Text>
+            </View>
+            <View style={styles.countBadge}>
+               <Text style={styles.countText}>{orders.length}</Text>
+            </View>
+          </View>
+        </SafeAreaView>
       </View>
 
-      <FlatList
+      <Animated.FlatList
         data={groupByDate()}
         keyExtractor={([date]) => date}
-        contentContainerStyle={{ padding: 12 }}
+        contentContainerStyle={styles.listBody}
+        style={{ opacity: fadeAnim }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#BA68C8" />
         }
         renderItem={({ item: [date, dateOrders] }) => (
           <View style={styles.dateGroup}>
             <View style={styles.dateHeader}>
-              <Text style={styles.dateText}>📅 {new Date(date).toLocaleDateString('en-IN', {
-                weekday: 'long', day: 'numeric', month: 'long'
-              })}</Text>
-              <Text style={styles.dateCount}>{dateOrders.length} orders</Text>
+               <BlurView intensity={10} tint="dark" style={styles.dateBadge}>
+                  <Ionicons name="calendar-outline" size={12} color="#FF5722" />
+                  <Text style={styles.dateText}>{new Date(date).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'long', weekday: 'short'
+                  }).toUpperCase()}</Text>
+               </BlurView>
+               <View style={styles.dateLine} />
+               <Text style={styles.dateCount}>{dateOrders.length} TASKS</Text>
             </View>
-            {dateOrders.map(order => (
-              <View key={order.order_id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.slot}>{SLOT_ICONS[order.meal_slot]} {order.meal_slot}</Text>
-                  <Text style={styles.orderId}>#{order.order_id}</Text>
-                </View>
-                <View style={styles.studentRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{order.name?.charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.studentName}>{order.name}</Text>
-                    <Text style={styles.studentEmail}>{order.email}</Text>
-                  </View>
-                  <Text style={styles.amount}>₹{order.total_amount}</Text>
-                </View>
-
-                {order.items && order.items.length > 0 && (
-                  <View style={styles.itemsList}>
-                    {order.items.map((it, idx) => (
-                      <Text key={idx} style={styles.itemText}>
-                        • <Text style={{ fontWeight: 'bold' }}>{it.quantity}x</Text> {it.name}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={styles.rejectBtn}
-                    onPress={() => rejectOrder(order.order_id)}>
-                    <Text style={styles.rejectBtnText}>Reject</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.approveBtn}
-                    onPress={() => approveOrder(order.order_id)}>
-                    <Text style={styles.approveBtnText}>Approve</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+            <View style={styles.gridContainer}>
+              {dateOrders.map(order => renderOrder(order))}
+            </View>
           </View>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📅</Text>
-            <Text style={styles.emptyText}>No scheduled orders</Text>
+          <View style={styles.emptyWrap}>
+             <Ionicons name="calendar-outline" size={80} color="rgba(255,255,255,0.05)" />
+             <Text style={styles.emptyTitle}>Registry Clear</Text>
+             <Text style={styles.emptySub}>No upcoming scheduled operations detected.</Text>
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const getStyles = (colors, isDark) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#fff', fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  count: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  dateGroup: { marginBottom: 16 },
-  dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  dateText: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  dateCount: { fontSize: 12, color: colors.textSecondary },
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  slot: { fontSize: 14, fontWeight: 'bold', color: colors.primary, textTransform: 'capitalize' },
-  orderId: { fontSize: 13, color: colors.textSecondary },
-  studentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? '#2A2A4A' : '#EEF', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
-  studentName: { fontSize: 14, fontWeight: '600', color: colors.text },
-  studentEmail: { fontSize: 12, color: colors.textSecondary },
-  amount: { fontSize: 15, fontWeight: 'bold', color: colors.primary },
-  itemsList: { backgroundColor: isDark ? '#2A2A35' : '#F8F9FA', padding: 10, borderRadius: 8, marginBottom: 12 },
-  itemText: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  approveBtn: { flex: 1, backgroundColor: colors.success, padding: 10, borderRadius: 10, alignItems: 'center' },
-  approveBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  rejectBtn: { flex: 1, backgroundColor: colors.error || '#FF3B30', padding: 10, borderRadius: 10, alignItems: 'center' },
-  rejectBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: colors.textSecondary },
-}); 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F12' },
+  meshHeader: { paddingBottom: 15, position: 'relative', overflow: 'hidden' },
+  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: RNStatusBar.currentHeight + 10 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
+  headerSubtitle: { color: '#FF5722', fontSize: 9, fontWeight: '900', letterSpacing: 2.5, marginBottom: 4 },
+  headerTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  countBadge: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255, 87, 34, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 87, 34, 0.2)' },
+  countText: { color: '#FF5722', fontSize: 16, fontWeight: '900' },
+
+  listBody: { paddingHorizontal: 16, paddingBottom: 100 },
+  dateGroup: { marginBottom: 30 },
+  dateHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
+  dateBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  dateText: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  dateLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
+  dateCount: { fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1 },
+
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  orderTile: { width: (width - 48) / 2, marginBottom: 16, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', height: 200, justifyContent: 'space-between' },
+  tileBlur: { flex: 1, padding: 12, justifyContent: 'space-between' },
+  tileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  slotMini: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  slotIconMini: { fontSize: 14 },
+  orderIdMini: { fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.2)', letterSpacing: 0.5 },
+
+  tileBody: { flex: 1, marginTop: 12 },
+  studentNameMini: { fontSize: 14, fontWeight: '800', color: '#FFF' },
+  itemsSummary: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 12, padding: 8, flex: 1 },
+  itemTextMini: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 },
+  moreItemsText: { fontSize: 9, color: '#FF5722', fontWeight: '800', marginTop: 2 },
+
+  tileFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  amountMini: { fontSize: 14, fontWeight: '900', color: '#FFF' },
+  miniActions: { flexDirection: 'row', gap: 6 },
+  miniBtnReject: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255, 82, 82, 0.1)', justifyContent: 'center', alignItems: 'center' },
+  miniBtnApprove: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#4CAF50', justifyContent: 'center', alignItems: 'center' },
+
+  emptyWrap: { alignItems: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 20, fontWeight: '900', color: '#FFF', marginTop: 20 },
+  emptySub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 20 }
+});

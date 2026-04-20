@@ -6,7 +6,7 @@ export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState('system');
+  const [themeMode, setThemeMode] = useState('dark'); // Default to dark as requested
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -14,6 +14,8 @@ export const ThemeProvider = ({ children }) => {
         const savedTheme = await AsyncStorage.getItem('themeMode');
         if (savedTheme) {
           setThemeMode(savedTheme);
+        } else {
+          setThemeMode('dark'); // Ensure dark mode on first load
         }
       } catch (err) {
         console.log('Error loading theme:', err);
@@ -38,21 +40,24 @@ export const ThemeProvider = ({ children }) => {
     mode: themeMode,
     changeTheme,
     colors: {
-      background: isDark ? '#121212' : '#f5f5f5',
-      card: isDark ? '#1E1E1E' : '#fff',
-      text: isDark ? '#FFF' : '#333',
-      textSecondary: isDark ? '#AAA' : '#999',
-      primary: '#6C63FF',
-      primaryLight: isDark ? 'rgba(108, 99, 255, 0.2)' : 'rgba(108, 99, 255, 0.1)',
-      border: isDark ? '#333' : '#e0e0e0',
-      error: isDark ? '#CF6679' : '#f44336',
-      success: isDark ? '#03DAC6' : '#4CAF50',
-      warning: '#FFD700',
-      tabBackground: isDark ? '#2C2C2C' : '#f0f0f0',
-      headerText: '#fff',
-      overlay: 'rgba(0,0,0,0.6)',
-      inputBg: isDark ? '#2C2C2C' : '#f5f5f5',
-      divider: isDark ? '#2C2C2C' : '#eee',
+      background: isDark ? '#0F0F12' : '#F7F9FC', // Deep Charcoal vs Soft Light
+      card: isDark ? '#1C1C24' : '#FFFFFF',
+      text: isDark ? '#FFFFFF' : '#1A1A1E',
+      textSecondary: isDark ? '#A0A0AB' : '#686777',
+      primary: '#FF5722', // Tangerine Orange
+      primaryLight: isDark ? 'rgba(255, 87, 34, 0.15)' : 'rgba(255, 87, 34, 0.08)',
+      border: isDark ? '#2C2C35' : '#E2E8F0',
+      error: isDark ? '#FF5252' : '#DC2626',
+      success: isDark ? '#4ADE80' : '#16A34A',
+      warning: '#FACC15',
+      tabBackground: isDark ? '#1C1C24' : '#F1F5F9',
+      headerText: '#FFFFFF',
+      overlay: 'rgba(0,0,0,0.75)',
+      inputBg: isDark ? '#15151A' : '#F1F5F9',
+      divider: isDark ? '#2C2C35' : '#E2E8F0',
+      // Added immersive tokens
+      glass: isDark ? 'rgba(28, 28, 36, 0.8)' : 'rgba(255, 255, 255, 0.85)',
+      cardElevated: isDark ? '#252531' : '#FFFFFF',
     }
   };
 
