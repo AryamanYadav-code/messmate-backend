@@ -32,12 +32,12 @@ router.post('/send-otp', async (req, res) => {
     );
 
   await axios.post('https://api.brevo.com/v3/smtp/email', {
-  sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+  sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
   to: [{ email: cleanEmail }],
-  subject: 'Your MessMate Verification Code',
+  subject: 'Your SRM_KITCHEN Verification Code',
   htmlContent: `
     <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
-      <h2 style="color: #6C63FF;">MessMate Email Verification</h2>
+      <h2 style="color: #6C63FF;">SRM_KITCHEN Email Verification</h2>
       <p>Your verification code is:</p>
       <div style="background: #f0f0ff; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
         <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
@@ -260,14 +260,14 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `https://messmate-backend-gmb0.onrender.com/api/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(cleanEmail)}`;
 
     await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
       to: [{ email: cleanEmail }],
-      subject: 'MessMate Password Reset',
+      subject: 'SRM_KITCHEN Password Reset',
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
           <h2 style="color: #6C63FF;">Reset Your Password</h2>
           <p>Hi ${user.name},</p>
-          <p>We received a request to reset your MessMate password. Click the button below to set a new password:</p>
+          <p>We received a request to reset your SRM_KITCHEN password. Click the button below to set a new password:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetLink}" style="background: #6C63FF; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
               Reset My Password
@@ -316,7 +316,7 @@ router.get('/reset-password', async (req, res) => {
       <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Reset Password - MessMate</title>
+        <title>Reset Password - SRM_KITCHEN</title>
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: Arial, sans-serif; background: #f0f0ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -350,7 +350,7 @@ router.get('/reset-password', async (req, res) => {
           <div class="success" id="ok">
             <h2>✅ Password Reset!</h2>
             <p>Your password has been updated successfully.</p>
-            <p style="margin-top:12px">You can now log in to the MessMate app with your new password.</p>
+            <p style="margin-top:12px">You can now log in to the SRM_KITCHEN app with your new password.</p>
           </div>
         </div>
         <script>
@@ -428,14 +428,14 @@ router.post('/change-password/send-otp', async (req, res) => {
     await db.query('INSERT INTO otp_codes (email, otp, expires_at) VALUES ($1,$2,$3)', [email, otp, expires_at]);
 
     await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
       to: [{ email }],
-      subject: 'MessMate — Password Change Verification',
+      subject: 'SRM_KITCHEN — Password Change Verification',
       htmlContent: `
         <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto">
           <h2 style="color:#6C63FF">Password Change Request</h2>
           <p>Hi ${name},</p>
-          <p>Your verification code to change your MessMate password:</p>
+          <p>Your verification code to change your SRM_KITCHEN password:</p>
           <div style="background:#f0f0ff;padding:20px;text-align:center;border-radius:10px;margin:20px 0">
             <h1 style="color:#6C63FF;letter-spacing:8px;margin:0">${otp}</h1>
           </div>

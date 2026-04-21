@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  RefreshControl, Modal, TextInput, Dimensions, Animated, ActivityIndicator,
-  StatusBar as RNStatusBar, ScrollView
+  RefreshControl, Modal, TextInput, Dimensions, ActivityIndicator,
+  StatusBar as RNStatusBar, ScrollView, Animated
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FadeInDown } from 'react-native-reanimated';
+import Reanimated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
@@ -125,7 +125,7 @@ export default function OrderQueueScreen({ navigation }) {
     const action = NEXT_ACTION[item.status];
 
     return (
-      <Animated.View 
+      <Reanimated.View 
         entering={FadeInDown.delay(index * 50).duration(500)}
         style={styles.orderContainer}
       >
@@ -200,7 +200,7 @@ export default function OrderQueueScreen({ navigation }) {
             )}
           </View>
         </BlurView>
-      </Animated.View>
+      </Reanimated.View>
     );
   };
 
@@ -215,7 +215,7 @@ export default function OrderQueueScreen({ navigation }) {
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.headerCore}>
-            <Text style={styles.editorialSub}>MESSMATE COMMAND</Text>
+            <Text style={styles.editorialSub}>SRM_KITCHEN COMMAND</Text>
             <Text style={styles.editorialTitle}>Tactical Queue</Text>
           </View>
           <View style={styles.liveTag}>

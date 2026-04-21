@@ -56,7 +56,10 @@ const StatCard = ({ label, value, subValue, index, icon, colors, gradient }) => 
 
 export default function AnalyticsScreen({ navigation }) {
   const { colors, isDark } = useTheme();
-  
+  // IMPORTANT: useSafeAreaInsets must be called here at the top level,
+  // BEFORE any conditional returns, to comply with Rules of Hooks.
+  const insets = useSafeAreaInsets();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,7 +127,7 @@ export default function AnalyticsScreen({ navigation }) {
     legendFontSize: 11
   })) || [];
 
-  const insets = useSafeAreaInsets();
+  // insets is already available from the top of this component.
 
   return (
     <View style={styles.container}>

@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Skeleton({ width, height, borderRadius = 8, style }) {
   const { colors, isDark } = useTheme();
-  const animatedValue = new Animated.Value(0);
+  // Use useRef to persist the Animated.Value across re-renders
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const animation = Animated.loop(

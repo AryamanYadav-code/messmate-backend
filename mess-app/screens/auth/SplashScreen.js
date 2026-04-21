@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
 import { savePushToken } from '../../services/pushNotifications';
 
-const { width } = Dimensions.get('window');
 
 export default function SplashScreen({ navigation }) {
     const { colors, isDark } = useTheme();
@@ -42,7 +41,7 @@ export default function SplashScreen({ navigation }) {
                 navigation.replace('Login');
             } else {
                 if (userId) savePushToken(userId);
-                
+
                 if (role === 'admin' || role === 'superadmin') {
                     navigation.replace('AdminDash');
                 } else {
@@ -58,16 +57,16 @@ export default function SplashScreen({ navigation }) {
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
                 <View style={styles.logoContainer}>
-                    <Image 
-                        source={require('../../assets/images/messmate_logo.jpg')} 
+                    <Image
+                        source={require('../../assets/images/srm_kitchen_logo.jpg')}
                         style={styles.logo}
                         resizeMode="contain"
                     />
                 </View>
-                <Text style={[styles.title, { color: colors.text }]}>MessMate</Text>
-                <Text style={[styles.tagline, { color: colors.textSecondary }]}>Modernizing your mess experience</Text>
+                <Text style={[styles.title, { color: colors.text }]}>SRM_KITCHEN</Text>
+                <Text style={[styles.tagline, { color: colors.textSecondary }]}>Modernizing your culinary experience</Text>
             </Animated.View>
-            
+
             <View style={styles.footer}>
                 <Text style={styles.footerText}>X-UPLIFT v1.2</Text>
             </View>

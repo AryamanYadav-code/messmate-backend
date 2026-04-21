@@ -11,7 +11,10 @@ import {
   Modal,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  ScrollView,
+  Platform,
+  Dimensions,
+  StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -236,88 +239,95 @@ export default function StaffScreen({ navigation }) {
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
         >
-          <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.modalContent}
-            >
-              <LinearGradient
-                colors={['#1A1A1E', '#0F0F12']}
-                style={styles.modalGradient}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalSubtitle}>PROTOCOL INITIATION</Text>
-                  <Text style={styles.modalTitle}>New Operator</Text>
-                </View>
-
-                <View style={styles.form}>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>FULL NAME</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g. John Doe"
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      value={newName}
-                      onChangeText={setNewName}
-                    />
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <LinearGradient
+                  colors={['#1A1A1E', '#0F0F12']}
+                  style={styles.modalGradient}
+                >
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalSubtitle}>PROTOCOL INITIATION</Text>
+                    <Text style={styles.modalTitle}>New Operator</Text>
                   </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>EMAIL ADDRESS</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="operator@messmate.com"
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      value={newEmail}
-                      onChangeText={setNewEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
+                  <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 20, paddingBottom: 10 }}
+                  >
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>FULL NAME</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="e.g. John Doe"
+                        placeholderTextColor="rgba(255,255,255,0.2)"
+                        value={newName}
+                        onChangeText={setNewName}
+                      />
+                    </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>ACCESS KEY (PASSWORD)</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Minimum 6 characters"
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry
-                    />
-                  </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>EMAIL ADDRESS</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="operator@srm-kitchen.com"
+                        placeholderTextColor="rgba(255,255,255,0.2)"
+                        value={newEmail}
+                        onChangeText={setNewEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                      />
+                    </View>
 
-                  <View style={styles.actionRow}>
-                    <TouchableOpacity 
-                      style={styles.cancelBtn} 
-                      onPress={() => {
-                        setModalVisible(false);
-                        setNewName('');
-                        setNewEmail('');
-                        setNewPassword('');
-                      }}
-                    >
-                      <Text style={styles.cancelBtnText}>ABORT</Text>
-                    </TouchableOpacity>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>ACCESS KEY (PASSWORD)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Minimum 6 characters"
+                        placeholderTextColor="rgba(255,255,255,0.2)"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry
+                      />
+                    </View>
 
-                    <TouchableOpacity 
-                      style={styles.submitBtn} 
-                      onPress={handleRegisterStaff}
-                      disabled={addingStaff}
-                    >
-                      <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.submitGradient}>
-                        {addingStaff ? (
-                          <ActivityIndicator size="small" color="#FFF" />
-                        ) : (
-                          <Text style={styles.submitBtnText}>REGISTER</Text>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </LinearGradient>
-            </KeyboardAvoidingView>
-          </BlurView>
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity 
+                        style={styles.cancelBtn} 
+                        onPress={() => {
+                          setModalVisible(false);
+                          setNewName('');
+                          setNewEmail('');
+                          setNewPassword('');
+                        }}
+                      >
+                        <Text style={styles.cancelBtnText}>ABORT</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.submitBtn} 
+                        onPress={handleRegisterStaff}
+                        disabled={addingStaff}
+                      >
+                        <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.submitGradient}>
+                          {addingStaff ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                          ) : (
+                            <Text style={styles.submitBtnText}>REGISTER</Text>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </ScrollView>
+                </LinearGradient>
+              </View>
+            </BlurView>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     </View>
@@ -401,19 +411,18 @@ const styles = StyleSheet.create({
   headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalContent: { width: '100%', height: '80%' },
+  modalContent: { width: '100%', maxHeight: '85%' },
   modalGradient: { 
-    flex: 1, 
     borderTopLeftRadius: 40, 
     borderTopRightRadius: 40, 
     padding: 30,
+    paddingBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)'
   },
-  modalHeader: { alignItems: 'center', marginBottom: 30 },
+  modalHeader: { alignItems: 'center', marginBottom: 24 },
   modalSubtitle: { fontSize: 10, fontWeight: '900', color: '#FF5722', letterSpacing: 2, marginBottom: 4 },
   modalTitle: { fontSize: 24, fontWeight: '800', color: '#FFF' },
-  form: { gap: 20 },
   inputGroup: { gap: 8 },
   label: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginLeft: 5 },
   input: { 

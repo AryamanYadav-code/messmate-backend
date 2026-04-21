@@ -280,7 +280,7 @@ export default function AdminDashScreen({ navigation }) {
 
           <View style={styles.footer}>
              <View style={styles.footerLine} />
-             <Text style={styles.footerLegal}>MESSMATE ENTERPRISE OS v3.0.0</Text>
+             <Text style={styles.footerLegal}>SRM_KITCHEN ENTERPRISE OS v3.0.0</Text>
              <Text style={styles.footerSub}>SECURE ENCRYPTED SESSION ACTIVE</Text>
           </View>
       </ScrollView>

@@ -96,7 +96,7 @@ export default function WalletScreen({ navigation }) {
             
             <View style={styles.cardTop}>
               <View>
-                <Text style={styles.cardBrand}>MESSMATE <Text style={{ color: '#FF5722' }}>LUXURY</Text></Text>
+                <Text style={styles.cardBrand}>SRM_KITCHEN <Text style={{ color: '#FF5722' }}>LUXURY</Text></Text>
                 <Text style={styles.cardType}>Premium Student Access</Text>
               </View>
               <View style={styles.cardChip}>

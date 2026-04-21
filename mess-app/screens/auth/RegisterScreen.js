@@ -41,7 +41,7 @@ export default function RegisterScreen({ navigation }) {
       await AsyncStorage.setItem('role', res.data.role);
       await AsyncStorage.setItem('name', res.data.name);
       await AsyncStorage.setItem('user_id', res.data.userId.toString());
-      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@messmate.com');
+      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@srm-kitchen.com');
       
       const pushSetup = await savePushToken(res.data.userId);
       if (pushSetup?.ok === false) {
@@ -105,17 +105,17 @@ export default function RegisterScreen({ navigation }) {
       <View style={styles.topSection}>
         <View style={styles.logoBox}>
           <Image 
-            source={require('../../assets/images/messmate_logo.jpg')} 
+            source={require('../../assets/images/srm_kitchen_logo.jpg')} 
             style={styles.logoImage}
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.appName}>MessMate</Text>
+        <Text style={styles.appName}>SRM_KITCHEN</Text>
         <Text style={styles.tagline}>Create your account</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Join MessMate!</Text>
+        <Text style={styles.cardTitle}>Join SRM_KITCHEN!</Text>
         <Text style={styles.cardSubtitle}>Register with your college email</Text>
 
         <View style={styles.inputGroup}>

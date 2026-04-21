@@ -224,7 +224,7 @@ export default function AdManagerScreen({ navigation }) {
                   <Text style={styles.label}>IMAGE ARCHIVE URL</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="https://cdn.messmate.com/luxe.jpg"
+                    placeholder="https://cdn.srm-kitchen.com/luxe.jpg"
                     placeholderTextColor="rgba(255,255,255,0.2)"
                     value={imageUrl}
                     onChangeText={setImageUrl}

@@ -55,8 +55,8 @@ router.get('/verify-staff', async (req, res) => {
     res.send(`
       <html><body style="font-family: Arial; text-align: center; padding: 50px;">
         <h2 style="color: #6C63FF;">Account Verified! ✅</h2>
-        <p>Your MessMate staff account has been verified successfully.</p>
-        <p>You can now login to the MessMate app with your credentials.</p>
+        <p>Your SRM_KITCHEN staff account has been verified successfully.</p>
+        <p>You can now login to the SRM_KITCHEN app with your credentials.</p>
         <div style="margin-top: 20px; padding: 20px; background: #f0f0ff; border-radius: 10px;">
           <p><strong>Email:</strong> ${email}</p>
         </div>
@@ -147,7 +147,6 @@ router.post('/students/:id/adjust-balance', verifySuperAdmin, async (req, res) =
 // Remove or Deactivate student - Superadmin only
 router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
   const { mode = 'soft' } = req.query; // 'soft' (deactivate) or 'hard' (delete)
-  const client = await db.getClient();
   
   try {
     if (mode === 'soft') {
@@ -156,41 +155,34 @@ router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
     }
 
     if (mode === 'hard') {
-      await client.query('BEGIN');
-      
-      // Cascade delete: 
-      // 1. user_push_tokens
-      // 2. feedback
-      // 3. order_items (via orders)
-      // 4. orders
-      // 5. wallet_transactions
-      // 6. user_sessions
-      // 7. users
-
-      await client.query('DELETE FROM user_push_tokens WHERE user_id = $1', [req.params.id]);
-      await client.query('DELETE FROM feedback WHERE user_id = $1', [req.params.id]);
-      
-      // Delete order_items associated with user's orders
-      await client.query(`
-        DELETE FROM order_items 
-        WHERE order_id IN (SELECT order_id FROM orders WHERE user_id = $1)
-      `, [req.params.id]);
-
-      await client.query('DELETE FROM orders WHERE user_id = $1', [req.params.id]);
-      await client.query('DELETE FROM wallet_transactions WHERE user_id = $1', [req.params.id]);
-      await client.query('DELETE FROM user_sessions WHERE user_id = $1', [req.params.id]);
-      await client.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
-      
-      await client.query('COMMIT');
-      return res.json({ message: 'Student and all related records deleted permanently!' });
+      const client = await db.connect();
+      try {
+        await client.query('BEGIN');
+        
+        await client.query('DELETE FROM user_push_tokens WHERE user_id = $1', [req.params.id]);
+        await client.query('DELETE FROM feedback WHERE user_id = $1', [req.params.id]);
+        await client.query(`
+          DELETE FROM order_items 
+          WHERE order_id IN (SELECT order_id FROM orders WHERE user_id = $1)
+        `, [req.params.id]);
+        await client.query('DELETE FROM orders WHERE user_id = $1', [req.params.id]);
+        await client.query('DELETE FROM wallet_transactions WHERE user_id = $1', [req.params.id]);
+        await client.query('DELETE FROM user_sessions WHERE user_id = $1', [req.params.id]);
+        await client.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
+        
+        await client.query('COMMIT');
+        return res.json({ message: 'Student and all related records deleted permanently!' });
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
+      }
     }
 
     res.status(400).json({ error: 'Invalid deletion mode' });
   } catch (err) { 
-    if (client) await client.query('ROLLBACK');
     res.status(500).json({ error: err.message }); 
-  } finally {
-    if (client) client.release();
   }
 });
 
@@ -268,14 +260,14 @@ router.post('/staff', verifySuperAdmin, async (req, res) => {
     const verifyLink = `https://messmate-backend-gmb0.onrender.com/api/admin/verify-staff?token=${encodeURIComponent(token)}&email=${encodeURIComponent(cleanEmail)}`;
 
     await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'MessMate App', email: 'aryamanyadav19@gmail.com' },
+      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
       to: [{ email: cleanEmail }],
-      subject: 'MessMate Staff Account Verification',
+      subject: 'SRM_KITCHEN Staff Account Verification',
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-          <h2 style="color: #6C63FF;">Welcome to MessMate Staff!</h2>
+          <h2 style="color: #6C63FF;">Welcome to SRM_KITCHEN Staff!</h2>
           <p>Hi ${cleanName},</p>
-          <p>You have been registered as a staff member on MessMate. Click the button below to verify your account:</p>
+          <p>You have been registered as a staff member on SRM_KITCHEN. Click the button below to verify your account:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verifyLink}" style="background: #6C63FF; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
               Verify My Account

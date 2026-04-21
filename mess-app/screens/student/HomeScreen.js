@@ -107,7 +107,7 @@ export default function HomeScreen({ navigation }) {
   const fetchMenu = async (cat) => {
     try {
       setLoading(true);
-      const res = await api.get(`/menu/${cat === 'all' ? 'lunch' : cat}`); // fallback for 'all' if needed
+      const res = await api.get(cat === 'all' ? '/menu' : `/menu/${cat}`);
       setMenu(res.data);
     } catch (err) { console.log('Menu Error:', err); }
     finally { setLoading(false); }

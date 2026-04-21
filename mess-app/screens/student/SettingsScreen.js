@@ -220,7 +220,7 @@ export default function SettingsScreen({ navigation }) {
            </LinearGradient>
         </TouchableOpacity>
 
-        <Text style={styles.legal}>MessMate Student Portal • SRMIST • Release 1.2.0</Text>
+        <Text style={styles.legal}>SRM_KITCHEN Student Portal • SRMIST • Release 1.2.0</Text>
       </ScrollView>
 
       {/* Reused Password Modal with Premium Styling */}

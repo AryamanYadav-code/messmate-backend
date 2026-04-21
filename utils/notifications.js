@@ -48,16 +48,26 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
 
 async function broadcastPushNotification(userId, title, body, data = {}) {
   const db = require('../config/db');
+  const uid = parseInt(userId);
+  
+  if (isNaN(uid)) {
+    console.log(`[Broadcast Notif] Aborted: Invalid userId "${userId}"`);
+    return;
+  }
+
   try {
     const result = await db.query(
       'SELECT push_token FROM user_push_tokens WHERE user_id = $1',
-      [userId]
+      [uid]
     );
     
     const tokens = result.rows.map(r => r.push_token);
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      console.log(`[Broadcast Notif] No tokens found for user ${uid}`);
+      return;
+    }
 
-    console.log(`Broadcasting to ${tokens.length} tokens for user ${userId}`);
+    console.log(`[Broadcast Notif] Sending to ${tokens.length} tokens for user ${uid}:`, tokens);
     
     // Expo allows up to 100 notifications in a single request
     const notifications = tokens.map(token => ({
@@ -78,9 +88,9 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
       }
     });
 
-    console.log('[Expo Broadcast Response]:', JSON.stringify(response.data, null, 2));
+    console.log('[Broadcast Notif] Expo Success:', JSON.stringify(response.data, null, 2));
   } catch (err) {
-    console.log('Error broadcasting push notification:', err.response?.data || err.message);
+    console.error('[Broadcast Notif] ERROR:', err.response?.data || err.message);
   }
 }
 

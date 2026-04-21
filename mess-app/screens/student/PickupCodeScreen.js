@@ -55,7 +55,7 @@ export default function PickupCodeScreen({ route, navigation }) {
   const shareCode = async () => {
     try {
       await Share.share({
-        message: `My MessMate Pickup Code for Order #${order.order_id} is: ${order.pickup_code}`,
+        message: `My SRM_KITCHEN Pickup Code for Order #${order.order_id} is: ${order.pickup_code}`,
       });
     } catch (error) { console.log(error.message); }
   };

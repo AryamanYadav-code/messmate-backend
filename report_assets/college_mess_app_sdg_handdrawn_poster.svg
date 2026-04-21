@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title { font: 700 48px 'Comic Sans MS', 'Segoe Print', cursive; fill: #183153; }
+      .subtitle { font: 24px 'Comic Sans MS', 'Segoe Print', cursive; fill: #34506d; }
+      .cardtitle { font: 700 24px 'Comic Sans MS', 'Segoe Print', cursive; fill: #20354c; }
+      .label { font: 20px 'Comic Sans MS', 'Segoe Print', cursive; fill: #22313f; }
+      .small { font: 17px 'Comic Sans MS', 'Segoe Print', cursive; fill: #355070; }
+      .tiny { font: 15px 'Comic Sans MS', 'Segoe Print', cursive; fill: #55708a; }
+      .white { fill: #ffffff; }
+    </style>
+    <pattern id="paperLines" width="1600" height="36" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="35" x2="1600" y2="35" stroke="#d9e2ec" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#fffaf0"/>
+  <rect width="1600" height="1000" fill="url(#paperLines)" opacity="0.5"/>
+
+  <path d="M85 105 C410 74, 980 140, 1490 96" fill="none" stroke="#173f5f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M92 113 C417 82, 987 147, 1497 104" fill="none" stroke="#173f5f" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <text x="95" y="82" class="title">College Mess App Poster</text>
+  <text x="95" y="140" class="subtitle">A hand-drawn SDG poster with simple visual impact</text>
+
+  <path d="M118 40 C116 360, 116 660, 120 960" fill="none" stroke="#e76f51" stroke-width="3" stroke-linecap="round"/>
+  <g opacity="0.55">
+    <circle cx="54" cy="150" r="14" fill="none" stroke="#bcccdc" stroke-width="2"/>
+    <circle cx="54" cy="350" r="14" fill="none" stroke="#bcccdc" stroke-width="2"/>
+    <circle cx="54" cy="550" r="14" fill="none" stroke="#bcccdc" stroke-width="2"/>
+    <circle cx="54" cy="750" r="14" fill="none" stroke="#bcccdc" stroke-width="2"/>
+    <circle cx="54" cy="915" r="14" fill="none" stroke="#bcccdc" stroke-width="2"/>
+  </g>
+
+  <g>
+    <path d="M575 225 C662 186, 925 188, 1022 230 L995 640 C900 682, 665 682, 555 635 Z" fill="#fff2cc" stroke="#34495e" stroke-width="3"/>
+    <path d="M583 235 C675 197, 917 199, 1014 238" fill="none" stroke="#34495e" stroke-width="1.5"/>
+    <rect x="668" y="202" width="260" height="40" rx="12" fill="#ffd166" opacity="0.7"/>
+    <text x="710" y="230" class="cardtitle">College Mess App</text>
+
+    <rect x="730" y="275" width="138" height="220" rx="26" fill="#ffffff" stroke="#34495e" stroke-width="4"/>
+    <circle cx="799" cy="296" r="5" fill="#bcccdc"/>
+    <rect x="748" y="320" width="102" height="20" rx="8" fill="#d7f9f1"/>
+    <rect x="748" y="352" width="102" height="20" rx="8" fill="#ffe29a"/>
+    <rect x="748" y="384" width="102" height="20" rx="8" fill="#ffd6d6"/>
+    <rect x="748" y="416" width="102" height="20" rx="8" fill="#bde0fe"/>
+    <text x="768" y="336" class="tiny">Menu</text>
+    <text x="768" y="368" class="tiny">Book</text>
+    <text x="764" y="400" class="tiny">Pickup</text>
+    <text x="769" y="432" class="tiny">Plan</text>
+
+    <path d="M688 535 h224" fill="none" stroke="#173f5f" stroke-width="7" stroke-linecap="round"/>
+    <text x="645" y="585" class="label">Smart meals for campus life</text>
+  </g>
+
+  <g>
+    <path d="M175 270 C260 240, 475 245, 575 278 L558 470 C458 503, 264 500, 161 462 Z" fill="#ffe8a3" stroke="#34495e" stroke-width="3"/>
+    <path d="M182 278 C272 250, 468 254, 568 286" fill="none" stroke="#34495e" stroke-width="1.4"/>
+    <rect x="220" y="246" width="225" height="38" rx="10" fill="#f4b942" opacity="0.8"/>
+    <text x="245" y="272" class="cardtitle white">SDG 2: Zero Hunger</text>
+    <circle cx="476" cy="392" r="38" fill="#fffdf7" stroke="#34495e" stroke-width="3"/>
+    <circle cx="476" cy="392" r="21" fill="none" stroke="#34495e" stroke-width="3"/>
+    <path d="M462 382 C468 373, 478 373, 484 382" fill="none" stroke="#ff8c42" stroke-width="3" stroke-linecap="round"/>
+    <path d="M456 401 C466 411, 485 414, 496 401" fill="none" stroke="#2a9d8f" stroke-width="3" stroke-linecap="round"/>
+    <text x="198" y="340" class="label">Meal Access</text>
+    <text x="198" y="374" class="small">Students can see food</text>
+    <text x="198" y="402" class="small">and book meals on time.</text>
+  </g>
+
+  <g>
+    <path d="M1032 270 C1125 239, 1335 245, 1442 282 L1424 472 C1316 505, 1126 501, 1018 462 Z" fill="#d8f3dc" stroke="#34495e" stroke-width="3"/>
+    <path d="M1038 278 C1137 248, 1328 253, 1436 289" fill="none" stroke="#34495e" stroke-width="1.4"/>
+    <rect x="1075" y="246" width="320" height="38" rx="10" fill="#4c9f38" opacity="0.85"/>
+    <text x="1100" y="272" class="cardtitle white">SDG 3: Good Health and Well-Being</text>
+    <path d="M1330 375 C1320 355, 1299 348, 1282 365 C1264 348, 1243 355, 1233 375 C1224 392, 1234 410, 1282 440 C1330 410, 1339 392, 1330 375 Z" fill="#ffd6dc" stroke="#34495e" stroke-width="3"/>
+    <path d="M1257 375 h18" fill="none" stroke="#4c9f38" stroke-width="6" stroke-linecap="round"/>
+    <path d="M1266 366 v18" fill="none" stroke="#4c9f38" stroke-width="6" stroke-linecap="round"/>
+    <text x="1058" y="340" class="label">Well-Being</text>
+    <text x="1058" y="374" class="small">Faster pickup means</text>
+    <text x="1058" y="402" class="small">less stress and better routine.</text>
+  </g>
+
+  <g>
+    <path d="M305 710 C430 670, 1140 676, 1288 718 L1266 900 C1126 940, 442 938, 288 895 Z" fill="#d7ecff" stroke="#34495e" stroke-width="3"/>
+    <path d="M313 718 C445 680, 1133 685, 1280 726" fill="none" stroke="#34495e" stroke-width="1.4"/>
+    <rect x="556" y="685" width="500" height="40" rx="12" fill="#f4a261" opacity="0.82"/>
+    <text x="590" y="713" class="cardtitle white">SDG 12: Responsible Consumption and Production</text>
+    <circle cx="1120" cy="815" r="52" fill="#fff8ef" stroke="#34495e" stroke-width="3"/>
+    <path d="M1112 780 C1136 779, 1152 792, 1156 814" fill="none" stroke="#2a9d8f" stroke-width="5" stroke-linecap="round"/>
+    <polygon points="1162,810 1158,826 1145,815" fill="#2a9d8f"/>
+    <path d="M1150 834 C1138 852, 1114 858, 1094 846" fill="none" stroke="#2a9d8f" stroke-width="5" stroke-linecap="round"/>
+    <polygon points="1098,857 1086,845 1103,841" fill="#2a9d8f"/>
+    <path d="M1092 826 C1086 806, 1094 786, 1113 778" fill="none" stroke="#2a9d8f" stroke-width="5" stroke-linecap="round"/>
+    <polygon points="1106,770 1122,772 1110,784" fill="#2a9d8f"/>
+    <text x="358" y="792" class="label">Waste Reduction</text>
+    <text x="358" y="828" class="small">Pre-orders help the mess</text>
+    <text x="358" y="858" class="small">cook only what is needed.</text>
+  </g>
+
+  <path d="M575 378 C535 375, 512 376, 576 392" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <polygon points="562,382 587,394 561,401" fill="#ef476f"/>
+  <path d="M1022 380 C1064 374, 1088 374, 1028 394" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <polygon points="1042,383 1018,394 1044,401" fill="#ef476f"/>
+  <path d="M798 640 C798 670, 798 685, 798 708" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <polygon points="788,694 798,714 808,694" fill="#ef476f"/>
+
+  <g>
+    <path d="M200 135 C220 118, 248 119, 266 136" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+    <path d="M222 166 C244 145, 284 146, 306 166" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+    <text x="320" y="160" class="tiny">poster style</text>
+  </g>
+
+  <text x="505" y="960" class="tiny">Minimal hand-drawn poster linking the college mess app to SDG 2, SDG 3, and SDG 12.</text>
+</svg>

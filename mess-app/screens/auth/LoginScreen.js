@@ -43,7 +43,7 @@ export default function LoginScreen({ navigation }) {
       await AsyncStorage.setItem('role', res.data.role);
       await AsyncStorage.setItem('name', res.data.name);
       await AsyncStorage.setItem('user_id', res.data.userId.toString());
-      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@messmate.com');
+      await AsyncStorage.setItem('email', userInfo.data?.user?.email || userInfo.user?.email || 'googleuser@srm-kitchen.com');
       
       await savePushToken(res.data.userId);
       navigation.replace('Home');
@@ -116,7 +116,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Image 
-                  source={require('../../assets/images/messmate_logo.jpg')} 
+                  source={require('../../assets/images/srm_kitchen_logo.jpg')} 
                   style={styles.mainLogo}
                   resizeMode="contain"
                 />
