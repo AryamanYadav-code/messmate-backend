@@ -122,7 +122,7 @@ export default function LoginScreen({ navigation }) {
                 />
                 <View style={styles.logoGlow} />
               </View>
-              <Text style={styles.title}>MessMate X</Text>
+              <Text style={styles.title}>SRM_KITCHEN</Text>
               <Text style={styles.subtitle}>Evolving your culinary experience at college.</Text>
             </View>
 
@@ -218,7 +218,7 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.registerRow}>
                 <Text style={styles.accountText}>New to the mess? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                  <Text style={styles.registerText}>Join MessMate</Text>
+                  <Text style={styles.registerText}>Join SRM_KITCHEN</Text>
                 </TouchableOpacity>
               </View>
             </View>
