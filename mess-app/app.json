@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon_new.png",
     "scheme": "messapp",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },

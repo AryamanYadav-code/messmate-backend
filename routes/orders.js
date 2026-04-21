@@ -158,6 +158,7 @@ router.put('/:order_id/status', async (req, res) => {
   }
 
   try {
+    console.log(`[Order Status] Updating order ${req.params.order_id} to status: ${status}`);
     await db.query('UPDATE orders SET status = $1 WHERE order_id = $2', [status, req.params.order_id]);
     
     // Get user push token
@@ -169,6 +170,11 @@ router.put('/:order_id/status', async (req, res) => {
     );
     
     const order = orderResult.rows[0];
+    if (!order) {
+      console.log(`[Order Status] Order ${req.params.order_id} not found after update!`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    console.log(`[Order Status] Fetched order details for user ${order.user_id}, name: ${order.name}`);
     
     // Send notification based on status
     const messages = {
@@ -179,12 +185,21 @@ router.put('/:order_id/status', async (req, res) => {
       rejected: { title: '❌ Order Rejected', body: 'Your order was rejected. Please contact the mess staff.' }
     };
 
-    if (messages[status]) {
+    if (order && messages[status]) {
+      const msg = messages[status];
+      console.log(`[Order Status] Triggering notification for status "${status}": "${msg.title}"`);
+      
+      const body = msg.body.replace('{order_id}', req.params.order_id);
+      
       await broadcastPushNotification(
         order.user_id,
-        messages[status].title,
-        messages[status].body,
-        { order_id: req.params.order_id, status }
+        msg.title,
+        body,
+        { 
+          order_id: req.params.order_id, 
+          status,
+          type: 'order_update'
+        }
       );
     }
 

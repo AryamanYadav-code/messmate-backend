@@ -48,10 +48,11 @@ async function sendPushNotification(pushToken, title, body, data = {}) {
 
 async function broadcastPushNotification(userId, title, body, data = {}) {
   const db = require('../config/db');
+  console.log(`[Broadcast Notif] Starting for user ID: ${userId} ("${title}")`);
   const uid = parseInt(userId);
   
   if (isNaN(uid)) {
-    console.log(`[Broadcast Notif] Aborted: Invalid userId "${userId}"`);
+    console.log(`[Broadcast Notif] Aborted: Invalid OR missing userId "${userId}"`);
     return;
   }
 
@@ -61,9 +62,19 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
       [uid]
     );
     
-    const tokens = result.rows.map(r => r.push_token);
+    const tokens = result.rows.map(r => r.push_token).filter(t => t);
+    console.log(`[Broadcast Notif] Found ${tokens.length} tokens in user_push_tokens for user ${uid}`);
+    
     if (tokens.length === 0) {
-      console.log(`[Broadcast Notif] No tokens found for user ${uid}`);
+      // Check legacy column in users table
+      const userResult = await db.query('SELECT push_token FROM users WHERE user_id = $1', [uid]);
+      if (userResult.rows[0]?.push_token) {
+        tokens.push(userResult.rows[0].push_token);
+        console.log(`[Broadcast Notif] Found 1 legacy token in users table for user ${uid}`);
+      }
+    }
+    if (tokens.length === 0) {
+      console.log(`[Broadcast Notif] No active tokens found for user ${uid}. Aborting.`);
       return;
     }
 
@@ -87,6 +98,8 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
         'Content-Type': 'application/json',
       }
     });
+
+    console.log(`[Broadcast Notif] Expo API Success. Response:`, JSON.stringify(response.data).substring(0, 200));
 
     const responses = response.data.data;
     console.log(`[Broadcast Notif] Expo Success: ${responses.length} responses received`);

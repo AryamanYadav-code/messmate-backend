@@ -12,13 +12,10 @@ export default function SplashScreen({ navigation }) {
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
     useEffect(() => {
-        // Hide the native splash screen immediately when the JS one mounts
-        ExpoSplashScreen.hideAsync().catch(() => {});
-
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 1200,
+                duration: 1000,
                 useNativeDriver: true,
             }),
             Animated.spring(scaleAnim, {
@@ -26,11 +23,15 @@ export default function SplashScreen({ navigation }) {
                 friction: 6,
                 useNativeDriver: true,
             })
-        ]).start();
+        ]).start(() => {
+            // Hide the native splash screen ONLY after the JS animation has started
+            // This prevents the "black flicker"
+            ExpoSplashScreen.hideAsync().catch(() => {});
+        });
 
         const timer = setTimeout(() => {
             checkAuth();
-        }, 2200);
+        }, 1800);
 
         return () => clearTimeout(timer);
     }, []);
