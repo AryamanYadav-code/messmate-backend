@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Image, Text, StyleSheet, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useTheme } from '../../context/ThemeContext';
 import { savePushToken } from '../../services/pushNotifications';
 
@@ -11,6 +12,9 @@ export default function SplashScreen({ navigation }) {
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
     useEffect(() => {
+        // Hide the native splash screen immediately when the JS one mounts
+        ExpoSplashScreen.hideAsync().catch(() => {});
+
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,

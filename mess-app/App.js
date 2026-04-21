@@ -1,6 +1,12 @@
 import * as Notifications from 'expo-notifications';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { Text, TextInput, View, ActivityIndicator, Alert, Platform } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
+
+// Keep the native splash screen visible while we fetch resources
+ExpoSplashScreen.preventAutoHideAsync().catch(() => {
+  /* reloading the app might cause some errors, perfectly safe to ignore */
+});
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
