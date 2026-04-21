@@ -4,12 +4,12 @@ import {
   Text, 
   FlatList, 
   StyleSheet, 
-  SafeAreaView, 
   TouchableOpacity, 
   RefreshControl,
   StatusBar,
   Dimensions
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -60,6 +60,7 @@ const FeedbackCard = ({ item, index }) => {
 };
 
 export default function FeedbackViewScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const [feedback, setFeedback] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,8 +90,8 @@ export default function FeedbackViewScreen({ navigation }) {
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={styles.header}>
+      <View style={{ flex: 1 }}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
             style={styles.headerMesh} 
@@ -137,7 +138,7 @@ export default function FeedbackViewScreen({ navigation }) {
             </View>
           }
         />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

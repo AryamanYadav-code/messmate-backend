@@ -9,11 +9,11 @@ import {
   ScrollView, 
   Image,
   Dimensions,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
@@ -23,6 +23,7 @@ import { useTheme } from '../../context/ThemeContext';
 const { width } = Dimensions.get('window');
 
 export default function AddItemScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   
   const [imageUrl, setImageUrl] = useState('');
@@ -71,7 +72,7 @@ export default function AddItemScreen({ navigation }) {
         style={StyleSheet.absoluteFill}
       />
       
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
@@ -241,7 +242,7 @@ export default function AddItemScreen({ navigation }) {
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
 
       <View style={styles.meshContainer}>
         <View style={styles.meshOrb} />

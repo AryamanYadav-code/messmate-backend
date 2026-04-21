@@ -3,7 +3,6 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  SafeAreaView, 
   FlatList, 
   TouchableOpacity, 
   TextInput, 
@@ -13,6 +12,8 @@ import {
   RefreshControl,
   Image
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -41,9 +42,9 @@ const StudentCard = ({ item, index, onAction }) => (
             <Text style={styles.avatarText}>{(item?.name || item?.email || 'S').charAt(0).toUpperCase()}</Text>
           </LinearGradient>
           <View style={styles.metaInfo}>
-            <Text style={styles.username}>{item?.name || 'Unknown Student'}</Text>
+            <Text style={styles.username}>{item?.name || 'Registered User'}</Text>
             <Text style={styles.email}>{item?.email || 'No Email Record'}</Text>
-            <Text style={styles.nodeId}>UID: {String(item?.user_id || 'UNKNOWN').toUpperCase()}</Text>
+            <Text style={styles.nodeId}>UID: {String(item?.user_id || 'UNKNOWN').toUpperCase()} • {item.is_active ? '✅ ACTIVE' : '⚠️ INACTIVE'}</Text>
           </View>
         </View>
 
@@ -51,7 +52,7 @@ const StudentCard = ({ item, index, onAction }) => (
 
         <View style={styles.balanceSection}>
           <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>WALLET</Text>
+            <Text style={styles.balanceLabel}>BALANCE</Text>
             <Text style={styles.balanceValue}>₹{parseFloat(item.wallet_balance || 0).toLocaleString()}</Text>
           </View>
           <View style={styles.verticalDivider} />
@@ -67,12 +68,14 @@ const StudentCard = ({ item, index, onAction }) => (
           <Text style={styles.stripButtonText}>MONITOR</Text>
         </TouchableOpacity>
         <View style={styles.stripDivider} />
-        <TouchableOpacity style={styles.stripButton} onPress={() => onAction('adjust', item)}>
-          <Text style={[styles.stripButtonText, { color: '#FF9800' }]}>CREDIT</Text>
+        <TouchableOpacity style={styles.stripButton} onPress={() => onAction('toggle_status', item)}>
+          <Text style={[styles.stripButtonText, { color: item.is_active ? '#f44336' : '#4CAF50' }]}>
+            {item.is_active ? 'DEACTIVATE' : 'ACTIVATE'}
+          </Text>
         </TouchableOpacity>
         <View style={styles.stripDivider} />
         <TouchableOpacity style={styles.stripButton} onPress={() => onAction('remove', item)}>
-          <Text style={[styles.stripButtonText, { color: '#f44336' }]}>REMOVE</Text>
+          <Ionicons name="trash-outline" size={14} color="rgba(255,255,255,0.2)" />
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -114,49 +117,42 @@ export default function StudentsScreen({ navigation }) {
   }, [search]);
 
   const handleAction = (type, student) => {
-    if (type === 'adjust') {
-      Alert.prompt(
-        'Balance Adjustment',
-        `Enter credit amount for ${student.name}`,
+    if (type === 'toggle_status') {
+      const nextStatus = !student.is_active;
+      Alert.alert(
+        nextStatus ? 'Activate Account' : 'Deactivate Account',
+        `Are you sure you want to ${nextStatus ? 'activate' : 'deactivate'} ${student.name}'s access?`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: 'Abort', style: 'cancel' },
           { 
-            text: 'APPLY', 
-            onPress: async (amt) => {
-              if (isNaN(amt)) return Alert.alert('Error', 'Invalid numeric input.');
+            text: nextStatus ? 'ACTIVATE' : 'DEACTIVATE',
+            style: nextStatus ? 'default' : 'destructive',
+            onPress: async () => {
               try {
-                await api.post(`/admin/students/${student.user_id}/adjust-balance`, { amount: parseFloat(amt) });
+                await api.patch(`/admin/users/${student.user_id}/status`, { is_active: nextStatus });
                 fetchStudents();
               } catch (err) {
-                Alert.alert('Protocol Error', 'Adjustment failed.');
+                Alert.alert('Sync Error', 'Status update failed.');
               }
-            } 
+            }
           }
-        ],
-        'plain-text',
-        '',
-        'numeric'
+        ]
       );
     } else if (type === 'remove') {
       Alert.alert(
-        'Account Management',
-        `Manage ${student.name}'s account:`,
+        'Hard Deletion',
+        `PERMANENTLY delete ${student.name}? This action is irreversible and clears all history.`,
         [
           { text: 'Cancel', style: 'cancel' },
           { 
-            text: 'Deactivate (Soft)', 
-            onPress: () => confirmRemoval(student, 'soft'),
-          },
-          { 
-            text: 'Delete Permanently (Hard)', 
+            text: 'DELETE PERMANENTLY', 
             style: 'destructive',
             onPress: () => confirmRemoval(student, 'hard')
           }
         ]
       );
     } else {
-       // View details logic
-       Alert.alert('Intelligence Insight', `Profile: ${student?.name || 'Unknown'}\nEmail: ${student?.email}\nJoined: ${student?.created_at ? new Date(student.created_at).toLocaleString() : 'N/A'}`);
+       Alert.alert('Intelligence Insight', `Profile: ${student?.name || 'User'}\nEmail: ${student?.email}\nStatus: ${student.is_active ? 'Active' : 'Inactive'}`);
     }
   };
 
@@ -188,7 +184,7 @@ export default function StudentsScreen({ navigation }) {
     );
   };
 
-  const filteredStudents = students || [];
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -199,7 +195,7 @@ export default function StudentsScreen({ navigation }) {
       <View style={[styles.orb, { top: -80, right: -100, backgroundColor: 'rgba(255, 87, 34, 0.12)' }]} />
       <View style={[styles.orb, { bottom: 100, left: -150, backgroundColor: 'rgba(255, 152, 0, 0.08)' }]} />
       
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <View style={styles.header}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.6)', 'rgba(255, 87, 34, 0.2)', 'transparent']} 
@@ -233,7 +229,7 @@ export default function StudentsScreen({ navigation }) {
         </View>
 
         <FlatList
-          data={filteredStudents}
+          data={students}
           keyExtractor={item => String(item.user_id)}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
@@ -253,8 +249,8 @@ export default function StudentsScreen({ navigation }) {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />
           }
         />
-      </SafeAreaView>
-    </View>
+        </View>
+      </View>
   );
 }
 

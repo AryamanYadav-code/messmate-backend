@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title { font: 700 40px 'Comic Sans MS', 'Segoe Print', cursive; fill: #183153; }
+      .subtitle { font: 24px 'Comic Sans MS', 'Segoe Print', cursive; fill: #34506d; }
+      .label { font: 20px 'Comic Sans MS', 'Segoe Print', cursive; fill: #22313f; }
+      .small { font: 17px 'Comic Sans MS', 'Segoe Print', cursive; fill: #2f4156; }
+      .tiny { font: 15px 'Comic Sans MS', 'Segoe Print', cursive; fill: #4a5d73; }
+    </style>
+    <pattern id="paperLines" width="1600" height="36" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="35" x2="1600" y2="35" stroke="#d9e2ec" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#f9f4e8"/>
+  <rect width="1600" height="1000" fill="url(#paperLines)" opacity="0.5"/>
+
+  <path d="M70 110 C400 70, 900 150, 1510 95" fill="none" stroke="#173f5f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M74 116 C404 76, 904 157, 1514 102" fill="none" stroke="#173f5f" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <text x="85" y="85" class="title">Week 9: Iteration Log</text>
+  <text x="85" y="145" class="subtitle">Qualitative impact chart from the reported build - test - feedback - refine cycle</text>
+
+  <path d="M120 730 C135 320, 135 320, 145 300" fill="none" stroke="#264653" stroke-width="5" stroke-linecap="round"/>
+  <path d="M140 745 C420 760, 720 730, 1020 670 C1190 630, 1350 545, 1470 430" fill="none" stroke="#264653" stroke-width="5" stroke-linecap="round"/>
+  <path d="M146 750 C426 765, 726 736, 1026 676 C1196 636, 1356 550, 1476 435" fill="none" stroke="#264653" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+
+  <text x="52" y="285" transform="rotate(-90 52 285)" class="label">Improvement confidence</text>
+  <text x="1240" y="795" class="label">Iteration number</text>
+
+  <path d="M126 670 C210 664, 250 660, 320 642" fill="none" stroke="#ef476f" stroke-width="3"/>
+  <text x="210" y="635" class="tiny">less friction</text>
+  <path d="M880 515 C960 510, 1010 500, 1090 470" fill="none" stroke="#06d6a0" stroke-width="3"/>
+  <text x="915" y="460" class="tiny">higher trust</text>
+  <path d="M1270 350 C1330 345, 1400 328, 1470 286" fill="none" stroke="#f4a261" stroke-width="3"/>
+  <text x="1300" y="278" class="tiny">better flow</text>
+
+  <g fill="#264653">
+    <circle cx="245" cy="700" r="12"/>
+    <circle cx="455" cy="684" r="12"/>
+    <circle cx="665" cy="640" r="12"/>
+    <circle cx="890" cy="574" r="12"/>
+    <circle cx="1145" cy="505" r="12"/>
+    <circle cx="1360" cy="430" r="12"/>
+  </g>
+  <g fill="#f9f4e8" stroke="#264653" stroke-width="2">
+    <circle cx="245" cy="700" r="16"/>
+    <circle cx="455" cy="684" r="16"/>
+    <circle cx="665" cy="640" r="16"/>
+    <circle cx="890" cy="574" r="16"/>
+    <circle cx="1145" cy="505" r="16"/>
+    <circle cx="1360" cy="430" r="16"/>
+  </g>
+  <g class="small">
+    <text x="231" y="705">1</text>
+    <text x="441" y="689">2</text>
+    <text x="651" y="645">3</text>
+    <text x="876" y="579">4</text>
+    <text x="1131" y="510">5</text>
+    <text x="1346" y="435">6</text>
+  </g>
+
+  <g>
+    <path d="M190 215 C250 200, 340 208, 400 228 L388 314 C322 330, 244 326, 185 305 Z" fill="#fff6b8" stroke="#3d405b" stroke-width="3"/>
+    <path d="M186 220 C246 204, 336 212, 396 232" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="210" y="248" class="label">1. Menu availability</text>
+    <text x="210" y="278" class="small">Badges show Available / Limited / Sold Out.</text>
+    <text x="210" y="304" class="tiny">Result: fewer wasted taps and faster decisions.</text>
+  </g>
+
+  <g>
+    <path d="M445 195 C510 180, 620 190, 688 212 L675 315 C610 335, 502 330, 438 300 Z" fill="#ffd6a5" stroke="#3d405b" stroke-width="3"/>
+    <path d="M441 200 C506 185, 616 194, 684 217" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="468" y="234" class="label">2. Time-slot picker</text>
+    <text x="468" y="264" class="small">Moved to a mandatory step before payment.</text>
+    <text x="468" y="290" class="tiny">Result: 100% of testers selected a slot.</text>
+  </g>
+
+  <g>
+    <path d="M735 180 C810 164, 935 172, 1008 196 L995 320 C920 340, 800 334, 728 300 Z" fill="#caffbf" stroke="#3d405b" stroke-width="3"/>
+    <path d="M731 186 C806 169, 931 177, 1004 201" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="760" y="220" class="label">3. Payment feedback</text>
+    <text x="760" y="250" class="small">Spinner + green success state after UPI scan.</text>
+    <text x="760" y="276" class="tiny">Result: payment uncertainty dropped sharply.</text>
+  </g>
+
+  <g>
+    <path d="M1088 205 C1152 188, 1264 194, 1340 218 L1328 318 C1258 340, 1142 335, 1083 301 Z" fill="#bde0fe" stroke="#3d405b" stroke-width="3"/>
+    <path d="M1084 210 C1148 193, 1260 199, 1336 223" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="1110" y="244" class="label">4. Dashboard alert</text>
+    <text x="1110" y="274" class="small">Chime + amber highlight for near-term orders.</text>
+    <text x="1110" y="300" class="tiny">Result: staff noticed new orders faster.</text>
+  </g>
+
+  <g>
+    <path d="M280 810 C350 790, 485 797, 566 824 L551 930 C476 953, 348 948, 274 908 Z" fill="#f1c0e8" stroke="#3d405b" stroke-width="3"/>
+    <path d="M276 816 C346 796, 481 803, 562 830" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="305" y="850" class="label">5. Staff earnings tab</text>
+    <text x="305" y="880" class="small">Revenue, order count, and item-level sales.</text>
+    <text x="305" y="906" class="tiny">Result: better planning for daily quantities.</text>
+  </g>
+
+  <g>
+    <path d="M830 795 C910 774, 1060 785, 1148 815 L1132 930 C1048 955, 905 950, 824 910 Z" fill="#d8f3dc" stroke="#3d405b" stroke-width="3"/>
+    <path d="M826 801 C906 780, 1056 791, 1144 821" fill="none" stroke="#3d405b" stroke-width="1.5"/>
+    <text x="855" y="842" class="label">6. Checkout summary</text>
+    <text x="855" y="872" class="small">One clear page, one place-order action.</text>
+    <text x="855" y="898" class="tiny">Result: completion rate and satisfaction improved.</text>
+  </g>
+
+  <path d="M180 540 C310 500, 420 478, 545 440" fill="none" stroke="#ef476f" stroke-width="3" stroke-dasharray="8 9"/>
+  <path d="M480 515 C545 490, 598 470, 650 443" fill="none" stroke="#ef476f" stroke-width="3" stroke-dasharray="8 9"/>
+  <path d="M758 500 C814 470, 862 451, 905 430" fill="none" stroke="#ef476f" stroke-width="3" stroke-dasharray="8 9"/>
+  <path d="M1080 474 C1116 458, 1172 440, 1290 412" fill="none" stroke="#ef476f" stroke-width="3" stroke-dasharray="8 9"/>
+
+  <text x="90" y="945" class="tiny">Interpretation note: the trend line shows qualitative project improvement based on the report outcomes, not numeric benchmark data.</text>
+</svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title { font: 700 40px 'Comic Sans MS', 'Segoe Print', cursive; fill: #20354c; }
+      .subtitle { font: 24px 'Comic Sans MS', 'Segoe Print', cursive; fill: #3e5671; }
+      .label { font: 22px 'Comic Sans MS', 'Segoe Print', cursive; fill: #243b53; }
+      .small { font: 18px 'Comic Sans MS', 'Segoe Print', cursive; fill: #334e68; }
+      .tiny { font: 15px 'Comic Sans MS', 'Segoe Print', cursive; fill: #486581; }
+    </style>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0 L0 0 0 44" fill="none" stroke="#d9e2ec" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#fffaf0"/>
+  <rect width="1600" height="1000" fill="url(#grid)" opacity="0.45"/>
+
+  <path d="M90 102 C420 78, 1020 140, 1490 94" fill="none" stroke="#0f4c5c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M96 110 C426 85, 1026 148, 1496 101" fill="none" stroke="#0f4c5c" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <text x="100" y="82" class="title">Week 10: Ethics and Inclusivity</text>
+  <text x="100" y="142" class="subtitle">Hand-drawn risk-to-safeguard chart for a responsible college canteen platform</text>
+
+  <path d="M190 205 C310 182, 520 186, 640 212 L630 825 C505 850, 300 846, 182 812 Z" fill="#ffe8d6" stroke="#34495e" stroke-width="3"/>
+  <path d="M960 205 C1085 180, 1305 186, 1425 214 L1410 825 C1288 852, 1080 848, 953 812 Z" fill="#d8f3dc" stroke="#34495e" stroke-width="3"/>
+  <text x="365" y="246" class="label">Risks Raised in the Report</text>
+  <text x="1120" y="246" class="label">Safeguards and Inclusive Design</text>
+
+  <g>
+    <path d="M250 300 C340 280, 510 286, 585 308 L574 398 C492 420, 334 416, 244 388 Z" fill="#fff1c1" stroke="#34495e" stroke-width="3"/>
+    <text x="276" y="335" class="label">Fraud or fake buyers</text>
+    <text x="276" y="365" class="small">Concern: false orders create waste and chaos.</text>
+  </g>
+  <g>
+    <path d="M250 445 C340 424, 510 432, 586 454 L575 545 C494 567, 334 563, 245 533 Z" fill="#ffd6d6" stroke="#34495e" stroke-width="3"/>
+    <text x="276" y="480" class="label">Data leakage</text>
+    <text x="276" y="510" class="small">Concern: phone numbers, UPI details, wallet activity.</text>
+  </g>
+  <g>
+    <path d="M248 590 C340 570, 514 576, 589 600 L578 690 C495 713, 332 708, 242 676 Z" fill="#e9d8fd" stroke="#34495e" stroke-width="3"/>
+    <text x="274" y="625" class="label">Digital exclusion</text>
+    <text x="274" y="655" class="small">Concern: low-tech or visually challenged students left out.</text>
+  </g>
+  <g>
+    <path d="M248 732 C340 710, 512 718, 588 742 L577 834 C495 854, 334 850, 244 820 Z" fill="#cde7ff" stroke="#34495e" stroke-width="3"/>
+    <text x="274" y="768" class="label">Job displacement fear</text>
+    <text x="274" y="798" class="small">Concern: staff worry the system replaces their role.</text>
+  </g>
+
+  <g>
+    <path d="M1015 300 C1106 280, 1284 286, 1365 309 L1354 400 C1272 422, 1103 418, 1009 388 Z" fill="#fefae0" stroke="#34495e" stroke-width="3"/>
+    <text x="1041" y="334" class="label">Confirmed payment first</text>
+    <text x="1041" y="364" class="small">UPI confirmation before processing removes no-show orders.</text>
+  </g>
+  <g>
+    <path d="M1017 447 C1106 426, 1287 431, 1368 456 L1356 546 C1274 570, 1103 565, 1011 533 Z" fill="#ddf4ff" stroke="#34495e" stroke-width="3"/>
+    <text x="1043" y="480" class="label">Security controls</text>
+    <text x="1043" y="510" class="small">JWT expiry, bcrypt hashing, encryption, limited retention.</text>
+  </g>
+  <g>
+    <path d="M1017 592 C1108 570, 1287 576, 1369 602 L1357 692 C1275 716, 1103 711, 1010 678 Z" fill="#f1f7b5" stroke="#34495e" stroke-width="3"/>
+    <text x="1042" y="626" class="label">Accessibility choices</text>
+    <text x="1042" y="656" class="small">Basic Android support, text scaling, high contrast, language options.</text>
+  </g>
+  <g>
+    <path d="M1015 736 C1108 714, 1289 721, 1368 746 L1356 838 C1273 860, 1100 854, 1009 822 Z" fill="#f8d5c6" stroke="#34495e" stroke-width="3"/>
+    <text x="1041" y="770" class="label">Workflow enhancement</text>
+    <text x="1041" y="800" class="small">Staff still prepare, serve, and manage daily operations.</text>
+  </g>
+
+  <path d="M590 344 C722 340, 840 338, 1013 344" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 10"/>
+  <path d="M592 492 C728 490, 844 490, 1015 492" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 10"/>
+  <path d="M592 635 C730 635, 850 635, 1015 635" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 10"/>
+  <path d="M592 782 C728 780, 847 780, 1013 780" fill="none" stroke="#ef476f" stroke-width="4" stroke-dasharray="10 10"/>
+
+  <path d="M745 280 C800 238, 856 240, 910 282 L894 306 C856 276, 806 274, 763 304 Z" fill="#fff" stroke="#34495e" stroke-width="3"/>
+  <text x="785" y="286" class="small">Bridge</text>
+  <text x="770" y="308" class="tiny">risk -> response</text>
+
+  <g>
+    <path d="M660 875 C792 846, 1095 850, 1236 882 L1220 955 C1084 984, 799 980, 648 944 Z" fill="#fff2cc" stroke="#34495e" stroke-width="3"/>
+    <text x="692" y="910" class="label">Positive impact: more trust, less stress, fairer access, and calmer work conditions.</text>
+    <text x="692" y="938" class="tiny">Stakeholders named in the report: students, canteen staff, faculty, administration, and management.</text>
+  </g>
+</svg>

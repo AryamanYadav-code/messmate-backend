@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert, 
-  SafeAreaView, 
   TextInput, 
   Image, 
   ScrollView, 
@@ -15,6 +14,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -85,6 +85,7 @@ const AdCard = ({ item, index, onToggle, onDelete }) => (
 );
 
 export default function AdManagerScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   
   const [ads, setAds] = useState([]);
@@ -160,7 +161,7 @@ export default function AdManagerScreen({ navigation }) {
       <View style={[styles.orb, { top: -100, right: -100, backgroundColor: 'rgba(255, 87, 34, 0.15)' }]} />
       <View style={[styles.orb, { bottom: -150, left: -150, backgroundColor: 'rgba(255, 152, 0, 0.1)' }]} />
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <View style={styles.meshHeader}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.6)', 'rgba(255, 87, 34, 0.2)', 'transparent']} 
@@ -278,7 +279,7 @@ export default function AdManagerScreen({ navigation }) {
             </View>
           }
         />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

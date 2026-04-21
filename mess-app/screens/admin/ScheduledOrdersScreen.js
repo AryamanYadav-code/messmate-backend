@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, 
-  SafeAreaView, RefreshControl, Dimensions, Animated, 
+  RefreshControl, Dimensions, Animated, 
   StatusBar as RNStatusBar 
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
@@ -21,6 +22,7 @@ const SLOT_CONFIG = {
 };
 
 export default function ScheduledOrdersScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const [orders, setOrders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -140,27 +142,25 @@ export default function ScheduledOrdersScreen({ navigation }) {
       <RNStatusBar barStyle="light-content" />
       <LinearGradient colors={['#1F1F2E', '#0F0F12']} style={StyleSheet.absoluteFill} />
 
-      <View style={styles.meshHeader}>
+      <View style={[styles.meshHeader, { paddingTop: insets.top }]}>
         <LinearGradient 
           colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
           style={styles.headerMesh} 
         />
-        <SafeAreaView>
-          <View style={styles.headerTop}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-               <BlurView intensity={20} tint="dark" style={styles.blurBtn}>
-                  <Ionicons name="chevron-back" size={20} color="#FFF" />
-               </BlurView>
-            </TouchableOpacity>
-            <View style={{ alignItems: 'center' }}>
-               <Text style={styles.headerSubtitle}>TEMPORAL REGISTRY</Text>
-               <Text style={styles.headerTitle}>Pre-Orders</Text>
-            </View>
-            <View style={styles.countBadge}>
-               <Text style={styles.countText}>{orders.length}</Text>
-            </View>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+             <BlurView intensity={20} tint="dark" style={styles.blurBtn}>
+                <Ionicons name="chevron-back" size={20} color="#FFF" />
+             </BlurView>
+          </TouchableOpacity>
+          <View style={{ alignItems: 'center' }}>
+             <Text style={styles.headerSubtitle}>TEMPORAL REGISTRY</Text>
+             <Text style={styles.headerTitle}>Pre-Orders</Text>
           </View>
-        </SafeAreaView>
+          <View style={styles.countBadge}>
+             <Text style={styles.countText}>{orders.length}</Text>
+          </View>
+        </View>
       </View>
 
       <Animated.FlatList
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F0F12' },
   meshHeader: { paddingBottom: 15, position: 'relative', overflow: 'hidden' },
   headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: RNStatusBar.currentHeight + 10 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
   backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
   headerSubtitle: { color: '#FF5722', fontSize: 9, fontWeight: '900', letterSpacing: 2.5, marginBottom: 4 },
   headerTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },

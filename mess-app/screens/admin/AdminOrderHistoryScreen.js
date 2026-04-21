@@ -5,11 +5,13 @@ import {
   FlatList, 
   TouchableOpacity, 
   StyleSheet, 
-  SafeAreaView, 
   RefreshControl, 
   StatusBar,
-  Dimensions
+  Dimensions,
+  TextInput,
+  ActivityIndicator
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,14 +132,14 @@ export default function AdminOrderHistoryScreen({ navigation }) {
     setRefreshing(false);
   }, []);
   
-  const filteredOrders = orders || [];
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <View style={styles.header}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
@@ -169,7 +171,7 @@ export default function AdminOrderHistoryScreen({ navigation }) {
         </View>
 
         <FlatList
-          data={filteredOrders}
+          data={orders}
           keyExtractor={item => item.order_id.toString()}
           contentContainerStyle={styles.listContent}
           numColumns={2}
@@ -189,7 +191,7 @@ export default function AdminOrderHistoryScreen({ navigation }) {
             </View>
           }
         />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

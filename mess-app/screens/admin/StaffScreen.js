@@ -3,15 +3,17 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  SafeAreaView, 
   FlatList, 
   TouchableOpacity, 
   TextInput, 
   Alert,
-  StatusBar,
-  Dimensions,
-  RefreshControl
+  RefreshControl,
+  Modal,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -72,6 +74,11 @@ export default function StaffScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [addingStaff, setAddingStaff] = useState(false);
 
   useEffect(() => { 
     const delayDebounceFn = setTimeout(() => {
@@ -101,6 +108,31 @@ export default function StaffScreen({ navigation }) {
     setRefreshing(false);
   }, [search]);
 
+  const handleRegisterStaff = async () => {
+    if (!newName || !newEmail || !newPassword) {
+      return Alert.alert('Validation Error', 'All fields are mandatory for system registration.');
+    }
+    
+    setAddingStaff(true);
+    try {
+      await api.post('/admin/staff', {
+        name: newName,
+        email: newEmail,
+        password: newPassword
+      });
+      Alert.alert('Protocol Success', `Invitation sequence initiated for ${newName}. Verification email dispatched.`);
+      setModalVisible(false);
+      setNewName('');
+      setNewEmail('');
+      setNewPassword('');
+      fetchStaff();
+    } catch (err) {
+      Alert.alert('Registry Error', err.response?.data?.error || 'Failed to authenticate registration node.');
+    } finally {
+      setAddingStaff(false);
+    }
+  };
+
   const handleDelete = (id) => {
     Alert.alert(
       'Unauthorized Access Node',
@@ -123,7 +155,7 @@ export default function StaffScreen({ navigation }) {
     );
   };
 
-  const filteredStaff = staff || [];
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -134,7 +166,7 @@ export default function StaffScreen({ navigation }) {
       <View style={[styles.orb, { top: -100, left: -100, backgroundColor: 'rgba(255, 87, 34, 0.15)' }]} />
       <View style={[styles.orb, { bottom: -150, right: -150, backgroundColor: 'rgba(255, 152, 0, 0.1)' }]} />
       
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <View style={styles.header}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.6)', 'rgba(255, 87, 34, 0.2)', 'transparent']} 
@@ -168,7 +200,7 @@ export default function StaffScreen({ navigation }) {
         </View>
 
         <FlatList
-          data={filteredStaff}
+          data={staff}
           keyExtractor={item => String(item.user_id)}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
@@ -191,13 +223,103 @@ export default function StaffScreen({ navigation }) {
 
         <TouchableOpacity 
           style={styles.fab}
-          onPress={() => Alert.alert('Protocol Info', 'Registration must be performed via System Auth Terminal.')}
+          onPress={() => setModalVisible(true)}
         >
           <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.fabGradient}>
             <Text style={styles.fabText}>+</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </SafeAreaView>
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalContent}
+            >
+              <LinearGradient
+                colors={['#1A1A1E', '#0F0F12']}
+                style={styles.modalGradient}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalSubtitle}>PROTOCOL INITIATION</Text>
+                  <Text style={styles.modalTitle}>New Operator</Text>
+                </View>
+
+                <View style={styles.form}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>FULL NAME</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. John Doe"
+                      placeholderTextColor="rgba(255,255,255,0.2)"
+                      value={newName}
+                      onChangeText={setNewName}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>EMAIL ADDRESS</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="operator@messmate.com"
+                      placeholderTextColor="rgba(255,255,255,0.2)"
+                      value={newEmail}
+                      onChangeText={setNewEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>ACCESS KEY (PASSWORD)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Minimum 6 characters"
+                      placeholderTextColor="rgba(255,255,255,0.2)"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                    />
+                  </View>
+
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                      style={styles.cancelBtn} 
+                      onPress={() => {
+                        setModalVisible(false);
+                        setNewName('');
+                        setNewEmail('');
+                        setNewPassword('');
+                      }}
+                    >
+                      <Text style={styles.cancelBtnText}>ABORT</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.submitBtn} 
+                      onPress={handleRegisterStaff}
+                      disabled={addingStaff}
+                    >
+                      <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.submitGradient}>
+                        {addingStaff ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <Text style={styles.submitBtnText}>REGISTER</Text>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </LinearGradient>
+            </KeyboardAvoidingView>
+          </BlurView>
+        </Modal>
+      </View>
     </View>
   );
 }
@@ -276,5 +398,47 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 60, opacity: 0.2, marginBottom: 20 },
   emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: '800' },
   emptySubText: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
-  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 }
+  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalContent: { width: '100%', height: '80%' },
+  modalGradient: { 
+    flex: 1, 
+    borderTopLeftRadius: 40, 
+    borderTopRightRadius: 40, 
+    padding: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  modalHeader: { alignItems: 'center', marginBottom: 30 },
+  modalSubtitle: { fontSize: 10, fontWeight: '900', color: '#FF5722', letterSpacing: 2, marginBottom: 4 },
+  modalTitle: { fontSize: 24, fontWeight: '800', color: '#FFF' },
+  form: { gap: 20 },
+  inputGroup: { gap: 8 },
+  label: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginLeft: 5 },
+  input: { 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    borderRadius: 18, 
+    padding: 18, 
+    color: '#FFF', 
+    fontSize: 15, 
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'
+  },
+  actionRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  cancelBtn: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 18, 
+    borderRadius: 20, 
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  cancelBtnText: { color: 'rgba(255,255,255,0.4)', fontWeight: '800', fontSize: 14 },
+  submitBtn: { flex: 1.5, borderRadius: 20, overflow: 'hidden' },
+  submitGradient: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 18 },
+  submitBtnText: { color: '#FFF', fontWeight: '900', fontSize: 14, letterSpacing: 1 }
 });

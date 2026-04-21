@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  SafeAreaView, RefreshControl, Modal, TextInput, Dimensions, Animated, ActivityIndicator,
+  RefreshControl, Modal, TextInput, Dimensions, Animated, ActivityIndicator,
   StatusBar as RNStatusBar, ScrollView
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -28,6 +29,7 @@ const NEXT_ACTION = {
 };
 
 export default function OrderQueueScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const [orders, setOrders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,47 +123,61 @@ export default function OrderQueueScreen({ navigation }) {
   const renderOrder = ({ item, index }) => {
     const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const action = NEXT_ACTION[item.status];
-    const cardWidth = (width - 44) / 2;
 
     return (
       <Animated.View 
         entering={FadeInDown.delay(index * 50).duration(500)}
-        style={{ width: cardWidth, marginBottom: 12, marginRight: index % 2 === 0 ? 12 : 0 }}
+        style={styles.orderContainer}
       >
-        <BlurView intensity={20} tint="dark" style={styles.orderCard}>
-          <View style={styles.cardHeader}>
-             <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-                <Ionicons name={config.icon} size={10} color={config.color} />
-                <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-             </View>
-             <Text style={styles.orderId}>#{item.order_id}</Text>
-          </View>
+        <BlurView intensity={25} tint="dark" style={styles.orderCard}>
+          <View style={styles.cardMain}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+                <Ionicons name={config.icon} size={12} color={config.color} />
+                <Text style={[styles.statusText, { color: config.color }]}>{config.label.toUpperCase()}</Text>
+              </View>
+              <Text style={styles.orderId}>#{item.order_id}</Text>
+            </View>
 
-          <View style={styles.cardInfo}>
-            <Text style={styles.studentName} numberOfLines={1}>{item.name}</Text>
-            <View style={styles.itemSummary}>
-               {item.items && item.items.slice(0, 2).map((it, idx) => (
-                 <Text key={idx} style={styles.itemText} numberOfLines={1}>
-                   {it.quantity}x {it.name}
-                 </Text>
-               ))}
-               {item.items && item.items.length > 2 && (
-                 <Text style={styles.moreItems}>+{item.items.length - 2} more</Text>
-               )}
+            <View style={styles.contentRow}>
+              <View style={styles.mainInfo}>
+                <Text style={styles.studentName}>{item.name || 'Registered Resident'}</Text>
+                <View style={styles.itemStrip}>
+                   {item.items && item.items.map((it, idx) => (
+                     <Text key={idx} style={styles.itemText}>
+                       {it.quantity}x <Text style={{ color: '#FFF' }}>{it.name}</Text>
+                       {idx < item.items.length - 1 ? ' • ' : ''}
+                     </Text>
+                   ))}
+                </View>
+              </View>
+              <View style={styles.priceBlock}>
+                <Text style={styles.currency}>₹</Text>
+                <Text style={styles.amountText}>{item.total_amount}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metaRow}>
+              <View style={styles.slotBadge}>
+                <Ionicons name="calendar-outline" size={10} color="rgba(255,255,255,0.4)" />
+                <Text style={styles.slotText}>{item.meal_slot}</Text>
+              </View>
+              {item.is_takeaway && (
+                <View style={styles.takeawayBadge}>
+                  <Ionicons name="bag-handle-outline" size={10} color="#FFD700" />
+                  <Text style={styles.takeawayText}>PARCEL</Text>
+                </View>
+              )}
             </View>
           </View>
 
-          <View style={styles.cardFooter}>
-             <Text style={styles.orderAmount}>₹{item.total_amount}</Text>
-             <Text style={styles.slotText}>{item.meal_slot}</Text>
-          </View>
-
-          <View style={styles.actionSection}>
+          <View style={styles.actionToolbar}>
             {action ? (
               <TouchableOpacity 
                 style={[styles.primaryAction, { backgroundColor: action.color }]}
                 onPress={() => updateStatus(item.order_id, action.next)}
               >
+                <Ionicons name={action.icon} size={14} color="#FFF" style={{ marginRight: 6 }} />
                 <Text style={styles.actionLabel}>{action.label}</Text>
               </TouchableOpacity>
             ) : item.status === 'ready' ? (
@@ -169,16 +185,17 @@ export default function OrderQueueScreen({ navigation }) {
                 style={[styles.primaryAction, { backgroundColor: '#4CAF50' }]}
                 onPress={() => openCollectModal(item)}
               >
-                <Text style={styles.actionLabel}>SECURE PICKUP</Text>
+                <Ionicons name="key-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.actionLabel}>VERIFY & DELIVER</Text>
               </TouchableOpacity>
             ) : null}
             
             {(item.status === 'pending' || item.status === 'approved') && (
                <TouchableOpacity 
-                style={styles.rejectMini}
+                style={styles.cancelAction}
                 onPress={() => rejectOrder(item.order_id)}
               >
-                <Ionicons name="trash-outline" size={14} color="#FF5252" />
+                <Ionicons name="close-circle-outline" size={20} color="rgba(255, 82, 82, 0.5)" />
               </TouchableOpacity>
             )}
           </View>
@@ -191,81 +208,68 @@ export default function OrderQueueScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar style="light" />
       <RNStatusBar barStyle="light-content" />
-      <LinearGradient colors={['#1F1F2E', '#0F0F12']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0F0F12', '#1A1A22']} style={StyleSheet.absoluteFill} />
 
-      <View style={styles.meshHeader}>
-        <LinearGradient
-          colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']}
-          style={styles.meshGradient}
-        />
-        <SafeAreaView>
-          <View style={styles.headerTop}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <BlurView intensity={20} tint="dark" style={styles.blurBtn}>
-                <Ionicons name="chevron-back" size={20} color="#FFF" />
-              </BlurView>
-            </TouchableOpacity>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={styles.headerSubtitle}>COMMAND PIPELINE</Text>
-              <View style={styles.titleRow}>
-                <Text style={styles.headerTitle}>Order Queue</Text>
-                <View style={styles.liveTag}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>LIVE</Text>
-                </View>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCore}>
+            <Text style={styles.editorialSub}>MESSMATE COMMAND</Text>
+            <Text style={styles.editorialTitle}>Tactical Queue</Text>
+          </View>
+          <View style={styles.liveTag}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>SYNC</Text>
+          </View>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <BlurView intensity={10} tint="dark" style={styles.searchBox}>
+            <Ionicons name="search-outline" size={20} color="rgba(255,255,255,0.3)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by ID or Student..."
+              placeholderTextColor="rgba(255,255,255,0.2)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </BlurView>
+        </View>
+
+        <View style={styles.filterTray}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPad}>
+            {FILTERS.map(f => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.filterTab, filter === f && styles.filterTabActive]}
+                onPress={() => setFilter(f)}
+              >
+                <Text style={[styles.filterTabText, filter === f && styles.filterTabActiveText]}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.order_id.toString()}
+          renderItem={renderOrder}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="layers-outline" size={40} color="rgba(255,255,255,0.1)" />
               </View>
+              <Text style={styles.emptyTitle}>Queue Cleared</Text>
+              <Text style={styles.emptySub}>All tactical operations are up to date.</Text>
             </View>
-            <View style={{ width: 44 }} />
-          </View>
-
-          <View style={styles.searchWrap}>
-            <BlurView intensity={15} tint="dark" style={styles.searchBlur}>
-              <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.4)" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Filter by Order ID or Student..."
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </BlurView>
-          </View>
-        </SafeAreaView>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {FILTERS.map(f => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterChip, filter === f && styles.filterChipActive]}
-              onPress={() => setFilter(f)}
-            >
-              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
-                {f.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.order_id.toString()}
-        renderItem={renderOrder}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: 'space-between' }}
-        contentContainerStyle={styles.listBody}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Ionicons name="shield-outline" size={80} color="rgba(255,255,255,0.05)" />
-            <Text style={styles.emptyTitle}>Queue Optimized</Text>
-            <Text style={styles.emptySub}>Pipeline is currently clear with no pending operations.</Text>
-          </View>
-        }
-      />
+          }
+        />
 
       <Modal visible={collectModal} transparent animationType="slide">
         <BlurView intensity={80} tint="dark" style={styles.modalBack}>
@@ -309,66 +313,81 @@ export default function OrderQueueScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F0F12' },
+  safeArea: { flex: 1 },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    paddingHorizontal: 20, 
-    paddingVertical: 15,
-    paddingTop: RNStatusBar.currentHeight + 10,
-    zIndex: 10
+    paddingHorizontal: 24, 
+    marginBottom: 20
   },
-  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 },
-  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
-  headerText: { alignItems: 'center' },
-  headerSub: { fontSize: 9, fontWeight: '900', color: '#FF5722', letterSpacing: 2.5, marginBottom: 4 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
-  statsBadge: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255, 87, 34, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 87, 34, 0.2)' },
-  statsCount: { color: '#FF5722', fontSize: 16, fontWeight: '900' },
+  headerCore: { flex: 1, marginLeft: 16 },
+  editorialSub: { fontSize: 10, fontWeight: '900', color: '#FF5722', letterSpacing: 2 },
+  editorialTitle: { fontSize: 28, fontWeight: '800', color: '#FFF', letterSpacing: -1, marginTop: -2 },
+  backBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
+  liveTag: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,87,34,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,87,34,0.2)' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FF5722', marginRight: 6 },
+  liveText: { fontSize: 10, fontWeight: '900', color: '#FF5722' },
 
-  filterBar: { marginBottom: 15, marginTop: 10 },
-  filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  filterTabActive: { backgroundColor: 'rgba(255, 87, 34, 0.15)', borderColor: 'rgba(255, 87, 34, 0.3)' },
-  filterTabText: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1 },
-  filterTabActiveText: { color: '#FF5722' },
+  searchContainer: { paddingHorizontal: 24, marginBottom: 16 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 14, color: '#FFF' },
 
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-  orderCard: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', height: 210, justifyContent: 'space-between' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, paddingBottom: 8 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 8, fontWeight: '900' },
-  orderId: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.2)' },
+  filterTray: { marginBottom: 20 },
+  filterPad: { paddingHorizontal: 24 },
+  filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  filterTabActive: { backgroundColor: '#FF5722' },
+  filterTabText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
+  filterTabActiveText: { color: '#FFF' },
 
-  cardInfo: { paddingHorizontal: 12, flex: 1 },
-  studentName: { fontSize: 14, fontWeight: '800', color: '#FFF' },
-  itemSummary: { marginTop: 6 },
-  itemText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 },
-  moreItems: { fontSize: 10, color: '#FF5722', fontWeight: '800', marginTop: 2 },
+  listContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  orderContainer: { marginBottom: 16 },
+  orderCard: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  cardMain: { padding: 20 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  statusText: { fontSize: 10, fontWeight: '900', marginLeft: 6 },
+  orderId: { fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.2)' },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.02)' },
-  orderAmount: { fontSize: 16, fontWeight: '900', color: '#FFF' },
-  slotText: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' },
+  contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  mainInfo: { flex: 1 },
+  studentName: { fontSize: 20, fontWeight: '800', color: '#FFF', marginBottom: 4 },
+  itemStrip: { flexDirection: 'row', flexWrap: 'wrap' },
+  itemText: { fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 18 },
 
-  actionSection: { flexDirection: 'row', gap: 8, padding: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
-  primaryAction: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  actionLabel: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-  rejectMini: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255, 82, 82, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 82, 82, 0.2)' },
+  priceBlock: { alignItems: 'flex-end', marginLeft: 16 },
+  currency: { fontSize: 12, fontWeight: '900', color: '#FF5722' },
+  amountText: { fontSize: 24, fontWeight: '900', color: '#FFF', marginTop: -4 },
 
-  emptyWrap: { alignItems: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 20, fontWeight: '900', color: '#FFF', marginTop: 20 },
-  emptySub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 20 },
+  metaRow: { flexDirection: 'row', marginTop: 16, gap: 12 },
+  slotBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  slotText: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)', marginLeft: 6, textTransform: 'uppercase' },
+  takeawayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  takeawayText: { fontSize: 10, fontWeight: '900', color: '#FFD700', marginLeft: 6 },
 
-  modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1C1C24', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: '#FFF' },
-  modalSub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginTop: 8, marginBottom: 25 },
-  modalCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  mcName: { fontSize: 18, fontWeight: '900', color: '#FFF' },
-  mcId: { fontSize: 10, fontWeight: '800', color: '#FF5722', marginTop: 4, letterSpacing: 1 },
-  mcInput: { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20, padding: 20, fontSize: 32, fontWeight: '900', textAlign: 'center', color: '#FFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 25, letterSpacing: 10 },
-  modalActions: { flexDirection: 'row', gap: 12 },
-  modalCancel: { flex: 1, paddingVertical: 18, alignItems: 'center' },
+  actionToolbar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.03)', backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, gap: 12 },
+  primaryAction: { flex: 1, flexDirection: 'row', height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { color: '#FFF', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  cancelAction: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,82,82,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,82,82,0.1)' },
+
+  emptyContainer: { alignItems: 'center', marginTop: 80 },
+  emptyIconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  emptyTitle: { fontSize: 24, fontWeight: '900', color: '#FFF' },
+  emptySub: { fontSize: 14, color: 'rgba(255,255,255,0.3)', marginTop: 8, textAlign: 'center' },
+
+  modalBack: { flex: 1, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1C1C24', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, paddingBottom: 48 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'center', marginBottom: 24 },
+  modalTitle: { fontSize: 24, fontWeight: '800', color: '#FFF' },
+  modalSub: { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 8, marginBottom: 32 },
+  modalCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mcName: { fontSize: 20, fontWeight: '800', color: '#FFF' },
+  mcId: { fontSize: 12, fontWeight: '900', color: '#FF5722', marginTop: 4 },
+  mcInput: { fontSize: 48, fontWeight: '900', color: '#FFF', textAlign: 'center', letterSpacing: 8, marginBottom: 32 },
+  modalActions: { flexDirection: 'row', gap: 16 },
+  modalCancel: { flex: 1, height: 56, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: 14, fontWeight: '900', color: 'rgba(255,255,255,0.3)' },
   modalConfirm: { flex: 2, borderRadius: 16, overflow: 'hidden' },
-  confirmIn: { flex: 1, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
-  confirmText: { color: '#FFF', fontWeight: '900', fontSize: 16 }
+  confirmIn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  confirmText: { fontSize: 16, fontWeight: '900', color: '#FFF' }
 });

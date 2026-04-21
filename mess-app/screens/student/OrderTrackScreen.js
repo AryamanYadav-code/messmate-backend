@@ -158,8 +158,8 @@ export default function OrderTrackScreen({ route, navigation }) {
         {order.status === 'ready' && (
           <TouchableOpacity style={styles.pickupBtn} onPress={() => navigation.navigate('PickupCode', { order })}>
             <LinearGradient colors={[colors.primary, '#F4511E']} style={styles.pickupBtnIn}>
-               <Ionicons name="qr-code-outline" size={20} color="#FFF" style={{ marginRight: 10 }} />
-               <Text style={styles.pickupBtnText}>Retrieve Pickup QR</Text>
+               <Ionicons name="key-outline" size={20} color="#FFF" style={{ marginRight: 10 }} />
+               <Text style={styles.pickupBtnText}>View Pickup Code</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}

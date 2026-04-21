@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert, 
-  SafeAreaView, 
   RefreshControl, 
   Image,
   Dimensions,
@@ -14,6 +13,7 @@ import {
   StatusBar,
   TextInput
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -63,6 +63,7 @@ const PulseIndicator = ({ active }) => {
 };
 
 export default function MenuManagerScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const [menu, setMenu] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,7 +84,7 @@ export default function MenuManagerScreen({ navigation }) {
 
   const fetchMenu = async () => {
     try {
-      const res = await api.get('/menu');
+      const res = await api.get('/menu?admin=true');
       setMenu(res.data);
     } catch (err) {
       console.log(err);
@@ -138,7 +139,7 @@ export default function MenuManagerScreen({ navigation }) {
         colors={['#1A1A1E', '#0F0F12']}
         style={styles.headerGradient}
       >
-        <SafeAreaView>
+        <View style={{ paddingTop: insets.top }}>
           <View style={styles.headerTop}>
             <TouchableOpacity 
               onPress={() => navigation.goBack()}
@@ -202,7 +203,7 @@ export default function MenuManagerScreen({ navigation }) {
               </Animated.View>
             )}
           />
-        </SafeAreaView>
+        </View>
       </LinearGradient>
     </View>
   );
@@ -221,20 +222,35 @@ export default function MenuManagerScreen({ navigation }) {
         <BlurView intensity={24} tint="dark" style={styles.cardBlur}>
           <Image 
             source={{ uri: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c' }} 
-            style={styles.itemImage}
+            style={[styles.itemImage, (!item.in_stock || !item.is_available) && { opacity: 0.5 }]}
           />
+          
+          {!item.in_stock && item.is_available && (
+            <View style={styles.soldOutBadge}>
+              <Text style={styles.soldOutText}>SOLD OUT</Text>
+            </View>
+          )}
+
+          {!item.is_available && (
+            <View style={[styles.soldOutBadge, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+              <Text style={styles.soldOutText}>REMOVED</Text>
+            </View>
+          )}
           
           <View style={styles.itemDetails}>
             <View style={styles.nameRow}>
               <View style={[styles.vegIndicator, { borderColor: item.is_veg ? '#4CAF50' : '#FF5252' }]}>
                 <View style={[styles.vegDot, { backgroundColor: item.is_veg ? '#4CAF50' : '#FF5252' }]} />
               </View>
-              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+              <Text style={[styles.itemName, (!item.in_stock || !item.is_available) && { color: 'rgba(255,255,255,0.4)' }]} numberOfLines={1}>{item.name}</Text>
             </View>
             
             <View style={styles.priceRow}>
               <Text style={styles.itemPrice}>₹{item.price}</Text>
-              <View style={[styles.statusIndicator, { backgroundColor: item.is_available ? '#4CAF50' : '#FF5252' }]} />
+              <View style={styles.statusGroup}>
+                <View style={[styles.statusIndicator, { backgroundColor: item.in_stock ? '#4CAF50' : '#FF9800' }]} title="Stock" />
+                {!item.is_available && <View style={[styles.statusIndicator, { backgroundColor: '#FF5252', marginLeft: 4 }]} title="Catalog" />}
+              </View>
             </View>
 
             <View style={styles.catWrap}>
@@ -300,7 +316,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 0 : 40,
+    paddingTop: 0,
     paddingBottom: 20,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
@@ -491,10 +507,32 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FF5722',
   },
+  statusGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   statusIndicator: {
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  soldOutBadge: {
+    position: 'absolute',
+    top: 50,
+    left: 25,
+    right: 25,
+    backgroundColor: 'rgba(255, 87, 34, 0.9)',
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    zIndex: 2,
+    transform: [{ rotate: '-10deg' }],
+  },
+  soldOutText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   catWrap: {
     marginTop: 4,

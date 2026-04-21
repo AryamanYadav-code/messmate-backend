@@ -3,7 +3,6 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  SafeAreaView, 
   ScrollView, 
   TouchableOpacity, 
   Dimensions, 
@@ -11,6 +10,7 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
@@ -124,12 +124,14 @@ export default function AnalyticsScreen({ navigation }) {
     legendFontSize: 11
   })) || [];
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
           <LinearGradient 
             colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
             style={styles.headerMesh} 
@@ -297,7 +299,7 @@ export default function AnalyticsScreen({ navigation }) {
           </Animated.View>
 
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <View style={styles.bottomMesh}>
          <View style={styles.blurOrb} />

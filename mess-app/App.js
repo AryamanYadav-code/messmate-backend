@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Text, TextInput, View, ActivityIndicator, Alert, Platform } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -144,8 +145,10 @@ function MainNav() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <MainNav />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MainNav />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

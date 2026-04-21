@@ -5,13 +5,13 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ScrollView, 
-  SafeAreaView, 
   Alert, 
   Dimensions, 
   Animated, 
   ActivityIndicator,
   StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -138,6 +138,8 @@ export default function AdminDashScreen({ navigation }) {
     ]);
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -152,12 +154,11 @@ export default function AdminDashScreen({ navigation }) {
           colors={['rgba(255, 87, 34, 0.4)', 'rgba(255, 87, 34, 0.15)', 'transparent']} 
           style={styles.meshGradient} 
         />
-        <SafeAreaView>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.greet}>SYSTEM PROTOCOL ALPHA</Text>
-              <Text style={styles.adminName}>{name.toUpperCase()}</Text>
-            </View>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <View>
+            <Text style={styles.greet}>SYSTEM PROTOCOL ALPHA</Text>
+            <Text style={styles.adminName}>{name.toUpperCase()}</Text>
+          </View>
             <View style={styles.headerRight}>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
                  <BlurView intensity={20} tint="dark" style={styles.iconBlur}>
@@ -186,8 +187,7 @@ export default function AdminDashScreen({ navigation }) {
                </LinearGradient>
             </BlurView>
           </View>
-        </SafeAreaView>
-      </View>
+        </View>
 
       <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
           <View style={styles.statGrid}>
@@ -312,7 +312,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'center', 
     paddingHorizontal: 20, 
-    paddingTop: 10,
     marginBottom: 5
   },
   greet: { color: '#FF5722', fontSize: 10, fontWeight: '900', letterSpacing: 3, marginBottom: 4 },

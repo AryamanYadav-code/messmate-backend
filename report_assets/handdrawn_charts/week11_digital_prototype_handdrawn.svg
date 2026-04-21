@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title { font: 700 40px 'Comic Sans MS', 'Segoe Print', cursive; fill: #1f2d3d; }
+      .subtitle { font: 24px 'Comic Sans MS', 'Segoe Print', cursive; fill: #415a77; }
+      .label { font: 22px 'Comic Sans MS', 'Segoe Print', cursive; fill: #213547; }
+      .small { font: 18px 'Comic Sans MS', 'Segoe Print', cursive; fill: #3a506b; }
+      .tiny { font: 15px 'Comic Sans MS', 'Segoe Print', cursive; fill: #5c677d; }
+    </style>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1.2" fill="#d9d9d9"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#fdf7ff"/>
+  <rect width="1600" height="1000" fill="url(#dots)" opacity="0.6"/>
+
+  <path d="M95 104 C425 82, 975 142, 1492 98" fill="none" stroke="#1d3557" stroke-width="4" stroke-linecap="round"/>
+  <path d="M101 111 C431 89, 981 149, 1498 105" fill="none" stroke="#1d3557" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <text x="100" y="82" class="title">Week 11: Digital Prototyping</text>
+  <text x="100" y="142" class="subtitle">Hand-drawn three-tier stack chart for the working SRM Kitchen prototype</text>
+
+  <g>
+    <path d="M165 215 C270 188, 1330 190, 1440 218 L1410 360 C1306 390, 275 388, 155 356 Z" fill="#d7f9f1" stroke="#2b2d42" stroke-width="3"/>
+    <path d="M170 220 C280 194, 1322 195, 1434 223" fill="none" stroke="#2b2d42" stroke-width="1.5"/>
+    <text x="650" y="248" class="label">Tier 1: Frontend Experience Layer</text>
+    <text x="205" y="292" class="small">Student Portal</text>
+    <text x="205" y="324" class="tiny">React.js + Vite</text>
+    <text x="205" y="348" class="tiny">Tailwind CSS</text>
+    <text x="470" y="292" class="small">App Flow</text>
+    <text x="470" y="324" class="tiny">Redux Toolkit state</text>
+    <text x="470" y="348" class="tiny">React Router v6</text>
+    <text x="760" y="292" class="small">Token + Alerts</text>
+    <text x="760" y="324" class="tiny">QRCode.js pickup token</text>
+    <text x="760" y="348" class="tiny">React Toastify notices</text>
+    <text x="1105" y="292" class="small">Role Views</text>
+    <text x="1105" y="324" class="tiny">student / staff / admin routes</text>
+    <text x="1105" y="348" class="tiny">mobile-first layout</text>
+  </g>
+
+  <g>
+    <path d="M210 415 C320 388, 1285 390, 1398 418 L1370 564 C1260 594, 325 592, 198 560 Z" fill="#ffe5ec" stroke="#2b2d42" stroke-width="3"/>
+    <path d="M214 420 C328 394, 1277 395, 1392 424" fill="none" stroke="#2b2d42" stroke-width="1.5"/>
+    <text x="662" y="450" class="label">Tier 2: Backend and Realtime Logic</text>
+    <text x="260" y="494" class="small">Node.js + Express.js APIs</text>
+    <text x="260" y="526" class="tiny">REST endpoints for auth, menu, orders, wallet</text>
+    <text x="700" y="494" class="small">JWT + bcryptjs security</text>
+    <text x="700" y="526" class="tiny">role-based access and password hashing</text>
+    <text x="1075" y="494" class="small">Socket.IO updates</text>
+    <text x="1075" y="526" class="tiny">live order status between students and kitchen</text>
+  </g>
+
+  <g>
+    <path d="M250 620 C362 593, 1244 598, 1358 625 L1330 785 C1220 816, 365 812, 240 780 Z" fill="#fff1b6" stroke="#2b2d42" stroke-width="3"/>
+    <path d="M255 626 C368 600, 1237 604, 1352 631" fill="none" stroke="#2b2d42" stroke-width="1.5"/>
+    <text x="642" y="658" class="label">Tier 3: Database and Domain Models</text>
+    <text x="295" y="705" class="small">MongoDB Atlas + Mongoose</text>
+    <text x="295" y="734" class="tiny">cloud database, schema validation, ODM layer</text>
+    <text x="660" y="705" class="small">Core models</text>
+    <text x="660" y="734" class="tiny">User, MenuItem, Order, Wallet, Feedback</text>
+    <text x="1030" y="705" class="small">Order workflow</text>
+    <text x="1030" y="734" class="tiny">pending -> preparing -> ready -> collected / cancelled</text>
+  </g>
+
+  <path d="M800 360 C798 390, 801 392, 800 414" fill="none" stroke="#ef476f" stroke-width="5" stroke-linecap="round"/>
+  <path d="M800 564 C798 592, 801 595, 800 620" fill="none" stroke="#ef476f" stroke-width="5" stroke-linecap="round"/>
+  <polygon points="790,405 810,405 800,424" fill="#ef476f"/>
+  <polygon points="790,610 810,610 800,628" fill="#ef476f"/>
+  <text x="830" y="398" class="tiny">API calls, auth, status sync</text>
+  <text x="832" y="604" class="tiny">persistence, menu data, transactions</text>
+
+  <g>
+    <path d="M115 830 C220 804, 510 806, 625 835 L608 935 C500 960, 218 958, 104 922 Z" fill="#d0ebff" stroke="#2b2d42" stroke-width="3"/>
+    <text x="145" y="866" class="label">Development tools</text>
+    <text x="145" y="896" class="small">GitHub, MongoDB Compass, Postman, Figma, VS Code + ESLint</text>
+  </g>
+
+  <g>
+    <path d="M825 830 C935 804, 1318 808, 1450 839 L1432 938 C1302 966, 941 962, 813 924 Z" fill="#e4c1f9" stroke="#2b2d42" stroke-width="3"/>
+    <text x="857" y="866" class="label">System view from the report</text>
+    <text x="857" y="896" class="small">Student Portal + Kitchen Hub + Admin Oversight in one synchronized product</text>
+  </g>
+
+  <path d="M186 188 C192 174, 214 170, 226 180" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+  <path d="M224 178 C239 162, 267 160, 280 177" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+  <path d="M239 178 C236 161, 246 145, 262 141" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+  <text x="286" y="182" class="tiny">working prototype, not just static screens</text>
+</svg>

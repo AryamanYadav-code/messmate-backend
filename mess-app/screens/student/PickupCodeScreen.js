@@ -1,12 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Dimensions, 
-  Animated, Share, SafeAreaView 
+  Animated, Share, SafeAreaView, Alert, Clipboard
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -15,6 +16,7 @@ export default function PickupCodeScreen({ route, navigation }) {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
   const order = route?.params?.order;
+  const [copied, setCopied] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -43,6 +45,13 @@ export default function PickupCodeScreen({ route, navigation }) {
     );
   }
 
+  const handleCopy = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Clipboard.setString(order.pickup_code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const shareCode = async () => {
     try {
       await Share.share({
@@ -55,61 +64,92 @@ export default function PickupCodeScreen({ route, navigation }) {
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Celebration Background */}
-      <LinearGradient colors={isDark ? ['#1A1A1F', '#0F0F12'] : [colors.primary, '#E64A19']} style={styles.bgSurface}>
-        <View style={styles.orb1} />
-        <View style={styles.orb2} />
-      </LinearGradient>
+      {/* Premium Hearth Background */}
+      <View style={styles.bgContainer}>
+        <LinearGradient 
+          colors={['#1F1F23', '#000000']} 
+          style={StyleSheet.absoluteFill} 
+        />
+        <View style={styles.heatOrb} />
+        <View style={styles.accentOrb} />
+      </View>
 
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <BlurView intensity={20} tint="light" style={styles.backBlur}>
+                    <Ionicons name="chevron-back" size={24} color="#FFF" />
+                </BlurView>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>AUTHENTICATION</Text>
+            <View style={{ width: 44 }} />
+        </View>
+
         <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
-           <View style={styles.successBadge}>
-             <BlurView intensity={20} tint="light" style={styles.badgeBlur}>
-                <Ionicons name="checkmark-done" size={40} color="#FFF" />
-             </BlurView>
+           <View style={styles.indicatorContainer}>
+              <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.indicatorIcon}>
+                 <Ionicons name="restaurant" size={32} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.readyTitle}>GATHERING REQUISITION</Text>
+              <Text style={styles.readySub}>Your order is verified and ready for collection.</Text>
            </View>
 
-           <Text style={styles.readyTitle}>ORDER READY!</Text>
-           <Text style={styles.readySub}>Your meal is waiting at the counter.</Text>
+           <TouchableOpacity activeOpacity={0.9} onPress={handleCopy} style={styles.glassCardWrap}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']}
+                style={styles.glassCardInner}
+              >
+                <View style={styles.codeHeader}>
+                    <Text style={styles.codeLabel}>PICKUP AUTH CODE</Text>
+                    {copied && (
+                      <View style={styles.copyBadge}>
+                          <Text style={styles.copyBadgeText}>COPIED</Text>
+                      </View>
+                    )}
+                </View>
 
-           <View style={styles.glassCardWrap}>
-             <BlurView intensity={30} tint="light" style={styles.glassCard}>
-                <Text style={styles.codeLabel}>PICKUP AUTHENTICATION CODE</Text>
-                <View style={styles.codeBox}>
+                <View style={styles.codeContainer}>
                    <Text style={styles.codeText}>{order.pickup_code || '------'}</Text>
                 </View>
+
+                <View style={styles.tapTip}>
+                    <Ionicons name="copy-outline" size={14} color="rgba(255,255,255,0.4)" />
+                    <Text style={styles.tapTipText}>Tap to copy security key</Text>
+                </View>
+
                 <View style={styles.divider} />
-                <View style={styles.orderMeta}>
-                   <View>
+
+                <View style={styles.metaGrid}>
+                   <View style={styles.metaItem}>
                       <Text style={styles.metaLabel}>ORDER ID</Text>
                       <Text style={styles.metaValue}>#{order.order_id}</Text>
                    </View>
-                   <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.metaLabel}>AMOUNT PAID</Text>
+                   <View style={[styles.metaItem, { alignItems: 'flex-end' }]}>
+                      <Text style={styles.metaLabel}>AMOUNT</Text>
                       <Text style={styles.metaValue}>₹{order.total_amount}</Text>
                    </View>
                 </View>
-             </BlurView>
-           </View>
+              </LinearGradient>
+           </TouchableOpacity>
 
-           <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.shareBtn} onPress={shareCode}>
-                 <BlurView intensity={20} tint="light" style={styles.shareBlur}>
-                    <Ionicons name="share-outline" size={24} color="#FFF" />
+           <View style={styles.footerActions}>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={shareCode}>
+                 <BlurView intensity={15} tint="light" style={styles.secondaryBlur}>
+                    <Ionicons name="share-social" size={24} color="#FFF" />
                  </BlurView>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.replace('Home')}>
-                 <LinearGradient colors={['#FFF', '#F1F1F1']} style={styles.doneBtnIn}>
-                    <Text style={styles.doneBtnText}>COMPLETE COLLECTION</Text>
+              <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.replace('Home')}>
+                 <LinearGradient colors={['#FF5722', '#FF9800']} style={styles.primaryBtnIn}>
+                    <Text style={styles.primaryBtnText}>DISMISS PORTAL</Text>
                  </LinearGradient>
               </TouchableOpacity>
            </View>
 
-           <TouchableOpacity style={styles.feedbackLink} onPress={() => navigation.navigate('Feedback', { order_id: order.order_id })}>
-              <Text style={styles.feedbackText}>Share Experience</Text>
-              <Ionicons name="star-outline" size={14} color="#FFF" style={{ marginLeft: 5 }} />
-           </TouchableOpacity>
+           <View style={styles.securityNote}>
+              <Ionicons name="shield-checkmark" size={12} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.securityText}>Valid for one-time verification only</Text>
+           </View>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -118,45 +158,92 @@ export default function PickupCodeScreen({ route, navigation }) {
 
 const getStyles = (colors, isDark) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  bgSurface: { ...StyleSheet.absoluteFillObject },
-  orb1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,255,255,0.05)', top: -100, right: -100 },
-  orb2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(0,0,0,0.1)', bottom: -50, left: -50 },
+  bgContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  heatOrb: { 
+    position: 'absolute', 
+    width: width * 1.5, 
+    height: width * 1.5, 
+    borderRadius: width, 
+    backgroundColor: 'rgba(255, 87, 34, 0.08)', 
+    top: -width * 0.4, 
+    right: -width * 0.4 
+  },
+  accentOrb: { 
+    position: 'absolute', 
+    width: width * 0.8, 
+    height: width * 0.8, 
+    borderRadius: width, 
+    backgroundColor: 'rgba(255, 152, 0, 0.05)', 
+    bottom: -100, 
+    left: -100 
+  },
 
   safeArea: { flex: 1 },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20,
+    paddingTop: 10
+  },
+  backBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  backBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '900', letterSpacing: 4 },
 
-  successBadge: { width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 25, elevation: 15, shadowColor: '#FFF', shadowOpacity: 0.3, shadowRadius: 20 },
-  badgeBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
-
-  readyTitle: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: 2, fontStyle: 'italic' },
-  readySub: { fontSize: 16, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 8, marginBottom: 40 },
-
-  glassCardWrap: { width: '100%', borderRadius: 35, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  glassCard: { padding: 35, alignItems: 'center' },
-  codeLabel: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 2, marginBottom: 20 },
-  codeBox: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 30, paddingVertical: 20, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  codeText: { fontSize: 52, fontWeight: '900', color: '#FFF', letterSpacing: 10 },
+  content: { flex: 1, padding: 24, justifyContent: 'center' },
   
-  divider: { width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 35 },
+  indicatorContainer: { alignItems: 'center', marginBottom: 40 },
+  indicatorIcon: { width: 80, height: 80, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 20, transform: [{ rotate: '-10deg' }] },
+  readyTitle: { fontSize: 28, fontWeight: '900', color: '#FFF', letterSpacing: 1, textAlign: 'center' },
+  readySub: { fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 12, lineHeight: 22 },
+
+  glassCardWrap: { 
+    borderRadius: 32, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.02)'
+  },
+  glassCardInner: { padding: 32 },
+  codeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  codeLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5 },
+  copyBadge: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  copyBadgeText: { color: '#FF9800', fontSize: 10, fontWeight: '900' },
+
+  codeContainer: { 
+    backgroundColor: 'rgba(0,0,0,0.3)', 
+    paddingVertical: 20, 
+    borderRadius: 20, 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)'
+  },
+  codeText: { fontSize: 56, fontWeight: '900', color: '#FFF', letterSpacing: 8 },
   
-  orderMeta: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  metaLabel: { fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1, marginBottom: 4 },
-  metaValue: { fontSize: 15, fontWeight: '800', color: '#FFF' },
+  tapTip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 15, gap: 6 },
+  tapTipText: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '600' },
 
-  actionRow: { flexDirection: 'row', marginTop: 50, width: '100%', gap: 15 },
-  shareBtn: { width: 65, height: 65, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  shareBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  divider: { width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 30 },
   
-  doneBtn: { flex: 1, height: 65, borderRadius: 20, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
-  doneBtnIn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  doneBtnText: { color: colors.primary, fontWeight: '900', fontSize: 15, letterSpacing: 1 },
+  metaGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  metaItem: { flex: 1 },
+  metaLabel: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1, marginBottom: 6 },
+  metaValue: { fontSize: 18, fontWeight: '800', color: '#FFF' },
 
-  feedbackLink: { flexDirection: 'row', alignItems: 'center', marginTop: 30, opacity: 0.8 },
-  feedbackText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  footerActions: { flexDirection: 'row', marginTop: 40, gap: 16 },
+  secondaryBtn: { width: 64, height: 64, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  secondaryBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  primaryBtn: { flex: 1, height: 64, borderRadius: 24, overflow: 'hidden' },
+  primaryBtnIn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  primaryBtnText: { color: '#FFF', fontWeight: '900', fontSize: 15, letterSpacing: 1.5 },
 
-  emptyWrap: { alignItems: 'center', padding: 40 },
-  errorTitle: { fontSize: 24, fontWeight: '900', color: colors.text, marginTop: 20 },
-  errorSub: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginTop: 10, lineHeight: 22 },
-  btn: { backgroundColor: colors.primary, padding: 20, borderRadius: 15, marginTop: 30, width: '100%', alignItems: 'center' },
+  securityNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 30, gap: 6, opacity: 0.5 },
+  securityText: { fontSize: 11, color: '#FFF', fontWeight: '600', letterSpacing: 0.5 },
+
+  emptyWrap: { alignItems: 'center', padding: 40, flex: 1, justifyContent: 'center' },
+  errorTitle: { fontSize: 24, fontWeight: '900', color: '#FFF', marginTop: 20 },
+  errorSub: { fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 10, lineHeight: 22 },
+  btn: { backgroundColor: '#FF5722', padding: 20, borderRadius: 20, marginTop: 30, width: '100%', alignItems: 'center' },
   btnText: { color: '#FFF', fontWeight: '900', fontSize: 16 }
 });
