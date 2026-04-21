@@ -506,6 +506,13 @@ router.post('/save-token', async (req, res) => {
       return res.status(400).json({ error: 'Invalid Expo push token format' });
     }
 
+    // Cleanup: If this token is already associated with OTHER users, remove it from them
+    // This prevents "token hijacking" issues when switching accounts on the same device.
+    await db.query(
+      'DELETE FROM user_push_tokens WHERE push_token = $1 AND user_id != $2',
+      [push_token, user_id]
+    );
+
     // Save/Update in the multi-device table
     await db.query(
       'INSERT INTO user_push_tokens (user_id, push_token, last_used_at) VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (user_id, push_token) DO UPDATE SET last_used_at = CURRENT_TIMESTAMP',

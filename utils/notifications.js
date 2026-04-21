@@ -57,31 +57,33 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
   }
 
   try {
-    const result = await db.query(
+    // 1. Fetch from multi-device table (preferred)
+    const multiDeviceResult = await db.query(
       'SELECT push_token FROM user_push_tokens WHERE user_id = $1',
       [uid]
     );
+    const multiTokens = multiDeviceResult.rows.map(r => r.push_token).filter(t => t);
     
-    const tokens = result.rows.map(r => r.push_token).filter(t => t);
-    console.log(`[Broadcast Notif] Found ${tokens.length} tokens in user_push_tokens for user ${uid}`);
+    // 2. Fetch from legacy users table (fallback)
+    const userResult = await db.query('SELECT push_token FROM users WHERE user_id = $1', [uid]);
+    const legacyToken = userResult.rows[0]?.push_token;
+
+    // 3. Combine and Deduplicate
+    const allTokens = [...new Set([...multiTokens, legacyToken].filter(t => {
+      if (!t) return false;
+      const isExpoToken = /^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/.test(t);
+      return isExpoToken;
+    }))];
+
+    console.log(`[Broadcast Notif] Found ${allTokens.length} unique valid tokens for user ${uid}`);
     
-    if (tokens.length === 0) {
-      // Check legacy column in users table
-      const userResult = await db.query('SELECT push_token FROM users WHERE user_id = $1', [uid]);
-      if (userResult.rows[0]?.push_token) {
-        tokens.push(userResult.rows[0].push_token);
-        console.log(`[Broadcast Notif] Found 1 legacy token in users table for user ${uid}`);
-      }
-    }
-    if (tokens.length === 0) {
-      console.log(`[Broadcast Notif] No active tokens found for user ${uid}. Aborting.`);
-      return;
+    if (allTokens.length === 0) {
+      console.log(`[Broadcast Notif] No valid tokens found for user ${uid}. Aborting.`);
+      return null;
     }
 
-    console.log(`[Broadcast Notif] Sending to ${tokens.length} tokens for user ${uid}:`, tokens);
-    
     // Expo allows up to 100 notifications in a single request
-    const notifications = tokens.map(token => ({
+    const notifications = allTokens.map(token => ({
       to: token,
       title,
       body,
@@ -99,23 +101,17 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
       }
     });
 
-    console.log(`[Broadcast Notif] Expo API Success. Response:`, JSON.stringify(response.data).substring(0, 200));
-
-    const responses = response.data.data;
-    console.log(`[Broadcast Notif] Expo Success: ${responses.length} responses received`);
-    
-    // Check for errors in individual responses
-    responses.forEach((receipt, index) => {
+    const receipts = response.data.data;
+    receipts.forEach((receipt, index) => {
+      const targetToken = allTokens[index];
       if (receipt.status === 'error') {
-        console.error(`[Push Error] Token: ${notifications[index].to}`);
-        console.error(`[Push Error] Message: ${receipt.message}`);
-        console.error(`[Push Error] Details: ${JSON.stringify(receipt.details)}`);
+        console.error(`[Push Error] Token: ${targetToken.substring(0, 30)}... | Error: ${receipt.message}`);
       } else {
-        console.log(`[Push Success] Sent to: ${notifications[index].to}`);
+        console.log(`[Push Success] Sent to: ${targetToken.substring(0, 30)}...`);
       }
     });
 
-    return responses;
+    return receipts;
   } catch (error) {
     console.error('[Broadcast Notif] CRITICAL ERROR:', error.message);
     if (error.details) {
