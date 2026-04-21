@@ -88,9 +88,27 @@ async function broadcastPushNotification(userId, title, body, data = {}) {
       }
     });
 
-    console.log('[Broadcast Notif] Expo Success:', JSON.stringify(response.data, null, 2));
-  } catch (err) {
-    console.error('[Broadcast Notif] ERROR:', err.response?.data || err.message);
+    const responses = response.data.data;
+    console.log(`[Broadcast Notif] Expo Success: ${responses.length} responses received`);
+    
+    // Check for errors in individual responses
+    responses.forEach((receipt, index) => {
+      if (receipt.status === 'error') {
+        console.error(`[Push Error] Token: ${notifications[index].to}`);
+        console.error(`[Push Error] Message: ${receipt.message}`);
+        console.error(`[Push Error] Details: ${JSON.stringify(receipt.details)}`);
+      } else {
+        console.log(`[Push Success] Sent to: ${notifications[index].to}`);
+      }
+    });
+
+    return responses;
+  } catch (error) {
+    console.error('[Broadcast Notif] CRITICAL ERROR:', error.message);
+    if (error.details) {
+      console.error('[Broadcast Notif] CRITICAL DETAILS:', JSON.stringify(error.details));
+    }
+    return null;
   }
 }
 

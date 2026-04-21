@@ -59,9 +59,10 @@ function MainNav() {
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('orders', {
           name: 'Order Notifications',
+          description: 'Updates on your meal preparation and delivery',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
+          lightColor: '#FF5722',
         });
       }
     }

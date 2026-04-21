@@ -96,6 +96,27 @@ export default function SettingsScreen({ navigation }) {
     
     // Register or remove the token from the backend
     await savePushToken(userId, !val);
+    if(val) {
+      Alert.alert('Notifications Enabled', 'Your device has been re-linked to SRM_KITCHEN.');
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (!notifications) {
+      Alert.alert('Action Required', 'Please enable push notifications first.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/test-push', { userId });
+      Alert.alert('Success', 'Verification ping sent to Expo server. It should arrive in a few seconds.');
+    } catch (error) {
+      console.log('Test notification failed', error);
+      Alert.alert('Configuration Issue', 'Could not send test ping. Ensure your device is registered.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
@@ -206,12 +227,22 @@ export default function SettingsScreen({ navigation }) {
              onValueChange={toggleDarkMode}
            />
            <View style={styles.divider} />
-           <SettingRow 
-             icon="business-outline" 
-             label="Primary Campus" 
-             sub="SRMIST Ramapuram" 
-           />
-        </View>
+            <SettingRow 
+              icon="business-outline" 
+              label="Primary Campus" 
+              sub="SRMIST Ramapuram" 
+            />
+         </View>
+
+         <Text style={styles.sectionHeader}>System Diagnostics</Text>
+         <View style={styles.groupCard}>
+            <SettingRow 
+              icon="pulse-outline" 
+              label="Verify Notification Link" 
+              sub="Send a test ping to this device" 
+              action={handleTestNotification}
+            />
+         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
            <LinearGradient colors={['#FF525215', '#FF525205']} style={styles.logoutIn}>

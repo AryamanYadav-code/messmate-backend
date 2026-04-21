@@ -16,13 +16,13 @@ export async function registerForPushNotifications() {
   // CRITICAL: On Android 13+ (Samsung/Android 14/15), the channel MUST be created 
   // BEFORE requesting permissions, otherwise the OS may not trigger the prompt.
   if (Platform.OS === 'android') {
-    console.log('Push Notifications: Setting up Android notification channel...');
+    console.log('Push Notifications: Setting up "orders" channel...');
     await Notifications.setNotificationChannelAsync('orders', {
-      name: 'Order Updates',
-      description: 'Important notifications about your meal orders',
+      name: 'Order Notifications',
+      description: 'Updates on your meal preparation and delivery',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6C63FF',
+      lightColor: '#FF5722',
     });
   }
 

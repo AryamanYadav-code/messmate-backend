@@ -522,4 +522,29 @@ router.post('/save-token', async (req, res) => {
   }
 });
 
+// Test Push Notification
+router.post('/test-push', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ message: 'User ID is required' });
+
+  try {
+    const { broadcastPushNotification } = require('../utils/notifications');
+    const result = await broadcastPushNotification(
+      userId,
+      '🔔 Test Notification',
+      'This is a test notification from SRM_KITCHEN. If you see this, push is working!',
+      { type: 'test' }
+    );
+
+    if (result) {
+      res.json({ message: 'Test notification sent successfully', result });
+    } else {
+      res.status(500).json({ message: 'Failed to send test notification. Check server logs.' });
+    }
+  } catch (error) {
+    console.error('Test push error:', error);
+    res.status(500).json({ message: 'Server error triggering test push' });
+  }
+});
+
 module.exports = router;
