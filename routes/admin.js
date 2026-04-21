@@ -159,8 +159,16 @@ router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
       try {
         await client.query('BEGIN');
         
+        // 1. Get user email for total cleanup
+        const userRes = await client.query('SELECT email FROM users WHERE user_id = $1', [req.params.id]);
+        const userEmail = userRes.rows[0]?.email;
+
+        // 2. Cleanup related data
         await client.query('DELETE FROM user_push_tokens WHERE user_id = $1', [req.params.id]);
-        await client.query('DELETE FROM feedback WHERE user_id = $1', [req.params.id]);
+        await client.query(`
+          DELETE FROM feedback 
+          WHERE order_id IN (SELECT order_id FROM orders WHERE user_id = $1)
+        `, [req.params.id]);
         await client.query(`
           DELETE FROM order_items 
           WHERE order_id IN (SELECT order_id FROM orders WHERE user_id = $1)
@@ -168,6 +176,14 @@ router.delete('/students/:id', verifySuperAdmin, async (req, res) => {
         await client.query('DELETE FROM orders WHERE user_id = $1', [req.params.id]);
         await client.query('DELETE FROM wallet_transactions WHERE user_id = $1', [req.params.id]);
         await client.query('DELETE FROM user_sessions WHERE user_id = $1', [req.params.id]);
+        
+        if (userEmail) {
+          await client.query('DELETE FROM otp_codes WHERE email = $1', [userEmail]);
+          await client.query('DELETE FROM staff_tokens WHERE email = $1', [userEmail]);
+          await client.query('DELETE FROM password_reset_tokens WHERE email = $1', [userEmail]);
+        }
+
+        // 3. Delete the user
         await client.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'student']);
         
         await client.query('COMMIT');
@@ -326,10 +342,33 @@ router.post('/test-notification', async (req, res) => {
 
 // Remove staff - Superadmin only
 router.delete('/staff/:id', verifySuperAdmin, async (req, res) => {
+  const client = await db.connect();
   try {
-    await db.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'admin']);
-    res.json({ message: 'Staff removed!' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    await client.query('BEGIN');
+
+    // 1. Get email to clean up tokens if necessary
+    const userRes = await client.query('SELECT email FROM users WHERE user_id = $1', [req.params.id]);
+    const userEmail = userRes.rows[0]?.email;
+
+    // 2. Cleanup related data
+    await client.query('DELETE FROM user_push_tokens WHERE user_id = $1', [req.params.id]);
+    await client.query('DELETE FROM user_sessions WHERE user_id = $1', [req.params.id]);
+    
+    if (userEmail) {
+      await client.query('DELETE FROM staff_tokens WHERE email = $1', [userEmail]);
+    }
+
+    // 3. Delete the user
+    await client.query('DELETE FROM users WHERE user_id = $1 AND role = $2', [req.params.id, 'admin']);
+
+    await client.query('COMMIT');
+    res.json({ message: 'Staff and all related records removed!' });
+  } catch (err) { 
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message }); 
+  } finally {
+    client.release();
+  }
 });
 
 // Full analytics
