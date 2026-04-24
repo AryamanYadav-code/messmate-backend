@@ -14,10 +14,51 @@ router.post('/add', async (req, res) => {
   try {
     await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
     await db.query(
-      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method) VALUES ($1,$2,$3,$4)',
-      [user_id, amount, 'credit', payment_method || 'UPI']
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method, status) VALUES ($1,$2,$3,$4,$5)',
+      [user_id, amount, 'credit', payment_method || 'UPI', 'completed']
     );
     res.json({ message: 'Money added!', amount });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Request a top-up (pending verification)
+router.post('/request', async (req, res) => {
+  const { user_id, amount, transaction_ref, payment_method } = req.body;
+  try {
+    const result = await db.query(
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method, status, transaction_ref) VALUES ($1,$2,$3,$4,$5,$6) RETURNING transaction_id',
+      [user_id, amount, 'credit', payment_method || 'UPI', 'pending', transaction_ref]
+    );
+    res.json({ message: 'Top-up request submitted!', transactionId: result.rows[0].transaction_id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get pending requests (for Admin)
+router.get('/pending', async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT wt.*, u.name as user_name, u.email as user_email FROM wallet_transactions wt JOIN users u ON wt.user_id = u.user_id WHERE wt.status = \'pending\' ORDER BY wt.created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Verify/Approve a top-up (Admin Only)
+router.post('/verify', async (req, res) => {
+  const { transaction_id, status } = req.body; // status: 'completed' or 'rejected'
+  try {
+    if (status === 'completed') {
+      const trans = await db.query('SELECT * FROM wallet_transactions WHERE transaction_id = $1', [transaction_id]);
+      if (trans.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+      const { user_id, amount } = trans.rows[0];
+      
+      await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
+      await db.query('UPDATE wallet_transactions SET status = \'completed\' WHERE transaction_id = $1', [transaction_id]);
+      return res.json({ message: 'Transaction approved and balance updated!' });
+    } else {
+      await db.query('UPDATE wallet_transactions SET status = \'rejected\' WHERE transaction_id = $1', [transaction_id]);
+      return res.json({ message: 'Transaction rejected.' });
+    }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

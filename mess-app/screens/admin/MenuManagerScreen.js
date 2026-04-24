@@ -13,6 +13,7 @@ import {
   StatusBar,
   TextInput
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -236,6 +237,16 @@ export default function MenuManagerScreen({ navigation }) {
               <Text style={styles.soldOutText}>REMOVED</Text>
             </View>
           )}
+
+          <TouchableOpacity 
+            style={styles.deleteIconButton} 
+            onPress={() => deleteItem(item)}
+            activeOpacity={0.7}
+          >
+            <BlurView intensity={30} tint="dark" style={styles.deleteIconBlur}>
+              <Ionicons name="trash-outline" size={16} color="#FF5252" />
+            </BlurView>
+          </TouchableOpacity>
           
           <View style={styles.itemDetails}>
             <View style={styles.nameRow}>
@@ -607,5 +618,22 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 125,
     backgroundColor: 'rgba(108, 99, 255, 0.15)',
+  },
+  deleteIconButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,82,82,0.3)',
+  },
+  deleteIconBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

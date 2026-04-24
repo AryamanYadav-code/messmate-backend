@@ -83,6 +83,7 @@ export default function AdminDashScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const [stats, setStats] = useState({ total_orders: 0, total_users: 0, revenue: 0, scheduled_count: 0 });
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingWalletCount, setPendingWalletCount] = useState(0);
   const [userRole, setUserRole] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,7 @@ export default function AdminDashScreen({ navigation }) {
   useFocusEffect(useCallback(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchStats(), fetchPending()]);
+      await Promise.all([fetchStats(), fetchPending(), fetchWalletPending()]);
       setLoading(false);
     };
     init();
@@ -103,6 +104,7 @@ export default function AdminDashScreen({ navigation }) {
     const interval = setInterval(() => {
       fetchStats();
       fetchPending();
+      fetchWalletPending();
     }, 15000);
     return () => clearInterval(interval);
   }, []));
@@ -124,6 +126,14 @@ export default function AdminDashScreen({ navigation }) {
       const res = await api.get('/orders/admin/pending');
       const orders = Array.isArray(res.data) ? res.data : [];
       setPendingCount(orders.length);
+    } catch (err) { console.log(err); }
+  };
+
+  const fetchWalletPending = async () => {
+    try {
+      const res = await api.get('/wallet/pending');
+      const requests = Array.isArray(res.data) ? res.data : [];
+      setPendingWalletCount(requests.length);
     } catch (err) { console.log(err); }
   };
 
@@ -275,6 +285,15 @@ export default function AdminDashScreen({ navigation }) {
                 icon="chatbubble-ellipses-outline" 
                 color="#00ACC1" 
                 onPress={() => navigation.navigate('FeedbackView')}
+              />
+              <ActionCard 
+                index={9}
+                title="Wallet Verify" 
+                sub="Manual top-ups" 
+                icon="wallet-outline" 
+                color="#FF5722" 
+                badge={pendingWalletCount}
+                onPress={() => navigation.navigate('PendingTopUps')}
               />
           </View>
 

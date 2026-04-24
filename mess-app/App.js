@@ -15,6 +15,7 @@ import OrderHistoryScreen from './screens/student/OrderHistoryScreen';
 import MenuManagerScreen from './screens/admin/MenuManagerScreen';
 import AddItemScreen from './screens/admin/AddItemScreen';
 import WalletScreen from './screens/student/WalletScreen';
+import WalletTopUpScreen from './screens/student/WalletTopUpScreen';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { savePushToken } from './services/pushNotifications';
 import AdManagerScreen from './screens/admin/AdManagerScreen';
@@ -38,6 +39,7 @@ import FeedbackViewScreen from './screens/admin/FeedbackViewScreen';
 import ScheduleOrderScreen from './screens/student/ScheduleOrderScreen';
 import ScheduledOrdersScreen from './screens/admin/ScheduledOrdersScreen';
 import AnalyticsScreen from './screens/admin/AnalyticsScreen';
+import PendingTopUpsScreen from './screens/admin/PendingTopUpsScreen';
 
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.allowFontScaling = false;
@@ -131,6 +133,7 @@ function MainNav() {
         <Stack.Screen name="AdminDash" component={AdminDashScreen} />
         <Stack.Screen name="OrderQueue" component={OrderQueueScreen} />
         <Stack.Screen name="Wallet" component={WalletScreen} />
+        <Stack.Screen name="WalletTopUp" component={WalletTopUpScreen} />
         <Stack.Screen name="MenuManager" component={MenuManagerScreen} />
         <Stack.Screen name="AddItem" component={AddItemScreen} />
         <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
@@ -145,6 +148,7 @@ function MainNav() {
         <Stack.Screen name="ScheduleOrder" component={ScheduleOrderScreen} />
         <Stack.Screen name="ScheduledOrders" component={ScheduledOrdersScreen} />
         <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+        <Stack.Screen name="PendingTopUps" component={PendingTopUpsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -46,23 +46,10 @@ export default function WalletScreen({ navigation }) {
     } catch (err) { console.log(err); }
   };
 
-  const addMoney = async (quickAmount) => {
+  const addMoney = (quickAmount) => {
     const finalAmount = quickAmount || parseFloat(amount);
     if (!finalAmount || finalAmount <= 0) return Alert.alert('Error', 'Enter a valid amount');
-    setLoading(true);
-    try {
-      await api.post('/wallet/add', {
-        user_id: parseInt(userId),
-        amount: finalAmount,
-        payment_method: 'UPI'
-      });
-      Alert.alert('Success! 🎉', `₹${finalAmount} added to wallet!`);
-      setAmount('');
-      fetchBalance(userId);
-      fetchHistory(userId);
-    } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to add money');
-    } finally { setLoading(false); }
+    navigation.navigate('WalletTopUp', { amount: finalAmount });
   };
 
   const QUICK_AMOUNTS = [50, 100, 200, 500];

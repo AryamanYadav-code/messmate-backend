@@ -105,7 +105,7 @@ export default function RegisterScreen({ navigation }) {
       <View style={styles.topSection}>
         <View style={styles.logoBox}>
           <Image 
-            source={require('../../assets/images/srm_kitchen_logo.jpg')} 
+            source={require('../../assets/images/icon_new.png')} 
             style={styles.logoImage}
             resizeMode="contain"
           />

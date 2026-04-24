@@ -59,17 +59,17 @@ export default function SplashScreen({ navigation }) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.container}>
             <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
                 <View style={styles.logoContainer}>
                     <Image
-                        source={require('../../assets/images/srm_kitchen_logo.jpg')}
+                        source={require('../../assets/images/icon_new.png')}
                         style={styles.logo}
                         resizeMode="contain"
                     />
                 </View>
-                <Text style={[styles.title, { color: colors.text }]}>SRM_KITCHEN</Text>
-                <Text style={[styles.tagline, { color: colors.textSecondary }]}>Modernizing your culinary experience</Text>
+                <Text style={styles.title}>SRM KITCHEN</Text>
+                <Text style={styles.tagline}>Modernizing your culinary experience</Text>
             </Animated.View>
 
             <View style={styles.footer}>
@@ -84,29 +84,33 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#0F0F12',
     },
     logoContainer: {
-        width: 140,
-        height: 140,
-        backgroundColor: 'rgba(255, 87, 34, 0.05)',
+        width: 160,
+        height: 160,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 40,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 24,
     },
     logo: {
-        width: 100,
-        height: 100,
+        width: 120,
+        height: 120,
     },
     title: {
         fontSize: 38,
         fontWeight: '900',
         letterSpacing: -1,
+        color: '#FFFFFF',
     },
     tagline: {
-        fontSize: 15,
-        marginTop: 6,
+        fontSize: 14,
+        marginTop: 4,
         fontWeight: '600',
+        color: 'rgba(255, 255, 255, 0.6)',
+        letterSpacing: 1,
     },
     footer: {
         position: 'absolute',
