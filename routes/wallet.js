@@ -26,7 +26,7 @@ router.post('/request', async (req, res) => {
   const { user_id, amount, transaction_ref, payment_method } = req.body;
   try {
     const result = await db.query(
-      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method, status, transaction_ref) VALUES ($1,$2,$3,$4,$5,$6) RETURNING transaction_id',
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method, status, transaction_ref) VALUES ($1,$2,$3,$4,$5,$6) RETURNING txn_id as transaction_id',
       [user_id, amount, 'credit', payment_method || 'UPI', 'pending', transaction_ref]
     );
     res.json({ message: 'Top-up request submitted!', transactionId: result.rows[0].transaction_id });
@@ -37,7 +37,7 @@ router.post('/request', async (req, res) => {
 router.get('/pending', async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT wt.*, u.name as user_name, u.email as user_email FROM wallet_transactions wt JOIN users u ON wt.user_id = u.user_id WHERE wt.status = \'pending\' ORDER BY wt.created_at DESC'
+      'SELECT wt.*, wt.txn_id as transaction_id, u.name as user_name, u.email as user_email FROM wallet_transactions wt JOIN users u ON wt.user_id = u.user_id WHERE wt.status = \'pending\' ORDER BY wt.created_at DESC'
     );
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }

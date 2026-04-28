@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
-import { Ionicons } from '@expo-vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,7 +21,7 @@ export default function WalletTopUpScreen({ navigation, route }) {
   const [userId, setUserId] = useState(null);
 
   // Configuration for UPI - In a real app, this might come from the backend
-  const UPI_ID = "aryaman88@okicici"; // Replace with your actual UPI ID
+  const UPI_ID = "aryamanyadav19@oksbi"; // Replace with your actual UPI ID
   const MERCHANT_NAME = "Aryaman Yadav";
 
   useEffect(() => {
@@ -38,26 +38,20 @@ export default function WalletTopUpScreen({ navigation, route }) {
     const upiUrl = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amt}&cu=INR&tn=${encodeURIComponent(note)}`;
 
     try {
-      const supported = await Linking.canOpenURL(upiUrl);
-      if (supported) {
-        await Linking.openURL(upiUrl);
-      } else {
-        // Fallback for devices without UPI apps or if linking fails
-        Alert.alert(
-          'UPI Apps Not Found',
-          `Please pay ₹${amt} to ${UPI_ID} manually using any UPI app (PhonePe, GPay, Paytm) and then enter the UTR number here.`,
-          [
-            { text: 'Copy UPI ID', onPress: () => {
-               // Fallback: Copy to clipboard if possible, or just show alert
-               Alert.alert('Copied', 'UPI ID copied to clipboard (Simulated)');
-            }},
-            { text: 'OK' }
-          ]
-        );
-      }
+      await Linking.openURL(upiUrl);
     } catch (err) {
       console.log('Error opening UPI link:', err);
-      Alert.alert('Error', 'Could not open UPI payment apps.');
+      // Fallback for devices without UPI apps or if linking fails
+      Alert.alert(
+        'UPI Apps Not Found',
+        `Please pay ₹${amt} to ${UPI_ID} manually using any UPI app (PhonePe, GPay, Paytm) and then enter the UTR number here.`,
+        [
+          { text: 'Copy UPI ID', onPress: () => {
+             Alert.alert('Copied', 'UPI ID copied to clipboard');
+          }},
+          { text: 'OK' }
+        ]
+      );
     }
   };
 
