@@ -276,6 +276,7 @@ export default function AdminDashScreen({ navigation }) {
                 sub="Temporal slots" 
                 icon="time-outline" 
                 color="#E91E63" 
+                badge={stats.scheduled_count}
                 onPress={() => navigation.navigate('ScheduledOrders')}
               />
               <ActionCard 
