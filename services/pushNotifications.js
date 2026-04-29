@@ -8,25 +8,37 @@ import api from './api';
 const EXPO_PROJECT_ID = 'e097d437-b436-4b1b-9348-5f5b34c214e6';
 
 export async function registerForPushNotifications() {
-  if (!Device.isDevice) return null;
+  if (!Device.isDevice) {
+    console.log('Push Notifications: Must use physical device for push notifications');
+    return null;
+  }
 
+  // CRITICAL: On Android 13+ (Samsung/Android 14/15), the channel MUST be created 
+  // BEFORE requesting permissions, otherwise the OS may not trigger the prompt.
+  if (Platform.OS === 'android') {
+    console.log('Push Notifications: Setting up "orders" channel...');
+    await Notifications.setNotificationChannelAsync('orders', {
+      name: 'Order Notifications',
+      description: 'Updates on your meal preparation and delivery',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF5722',
+    });
+  }
+
+  console.log('Push Notifications: Checking permissions...');
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   if (existingStatus !== 'granted') {
+    console.log('Push Notifications: Requesting fresh permissions...');
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
-  if (finalStatus !== 'granted') return null;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6C63FF',
-    });
+  if (finalStatus !== 'granted') {
+    console.log('Push Notifications: Permission not granted. Current status:', finalStatus);
+    return null;
   }
 
   const projectId =
@@ -34,10 +46,15 @@ export async function registerForPushNotifications() {
     Constants?.easConfig?.projectId ||
     EXPO_PROJECT_ID;
 
-  if (!projectId) return null;
+  if (!projectId) {
+    console.log('Push Notifications: No Project ID found');
+    return null;
+  }
 
   try {
+    console.log('Push Notifications: Fetching Expo Push Token...');
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    console.log('Push Notifications: Token fetched successfully');
     return token.data;
   } catch (error) {
     const message = error?.message || '';
@@ -48,7 +65,7 @@ export async function registerForPushNotifications() {
   }
 }
 
-export async function savePushToken(userId) {
+export async function savePushToken(userId, remove = false) {
   try {
     if (!userId) return;
 
@@ -58,22 +75,26 @@ export async function savePushToken(userId) {
     }
 
     const notificationsEnabled = await AsyncStorage.getItem('notifications');
-    if (notificationsEnabled === 'false') return;
+    if (notificationsEnabled === 'false' && !remove) return; // Don't register if disabled, but allow removal
 
     const pushToken = await registerForPushNotifications();
+    console.log('Push token for operation:', pushToken);
+
     if (!pushToken) {
+      if (remove) return { ok: true }; // Already no token
       throw new Error('Push token not generated. Check app notification permission and device support.');
     }
 
     const response = await api.post('/auth/save-token', {
       user_id: parsedUserId,
       push_token: pushToken,
+      remove: remove
     });
 
     return { ok: true, token: pushToken, response: response.data };
   } catch (error) {
     const message = error?.response?.data?.error || error?.message || 'Unknown push token save error';
-    console.log('Failed to save push token:', message);
+    console.log('Failed to process push token:', message);
     return { ok: false, error: message };
   }
 }

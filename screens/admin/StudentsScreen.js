@@ -1,119 +1,335 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  TextInput, 
+  Alert,
+  StatusBar,
+  Dimensions,
+  RefreshControl,
+  Image
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  FadeInDown, 
+  Layout,
+  SlideInRight
+} from 'react-native-reanimated';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 
+const { width } = Dimensions.get('window');
+
+const StudentCard = ({ item, index, onAction }) => (
+  <Animated.View 
+    entering={FadeInDown.delay(index * 30).duration(400)}
+    layout={Layout.springify()}
+    style={styles.cardContainer}
+  >
+    <BlurView intensity={10} tint="dark" style={styles.cardBlur}>
+      <View style={styles.cardMain}>
+        <View style={styles.profileSection}>
+          <LinearGradient
+            colors={['#2C2C2E', '#1A1A1E']}
+            style={styles.avatarContainer}
+          >
+            <Text style={styles.avatarText}>{(item?.name || item?.email || 'S').charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+          <View style={styles.metaInfo}>
+            <Text style={styles.username}>{item?.name || 'Registered User'}</Text>
+            <Text style={styles.email}>{item?.email || 'No Email Record'}</Text>
+            <Text style={styles.nodeId}>UID: {String(item?.user_id || 'UNKNOWN').toUpperCase()} • {item.is_active ? '✅ ACTIVE' : '⚠️ INACTIVE'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.balanceSection}>
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceLabel}>BALANCE</Text>
+            <Text style={styles.balanceValue}>₹{parseFloat(item.wallet_balance || 0).toLocaleString()}</Text>
+          </View>
+          <View style={styles.verticalDivider} />
+          <View style={styles.balanceItem}>
+             <Text style={styles.balanceLabel}>ORDERS</Text>
+             <Text style={styles.balanceValue}>{item.total_orders || 0}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.actionStrip}>
+        <TouchableOpacity style={styles.stripButton} onPress={() => onAction('view', item)}>
+          <Text style={styles.stripButtonText}>MONITOR</Text>
+        </TouchableOpacity>
+        <View style={styles.stripDivider} />
+        <TouchableOpacity style={styles.stripButton} onPress={() => onAction('toggle_status', item)}>
+          <Text style={[styles.stripButtonText, { color: item.is_active ? '#f44336' : '#4CAF50' }]}>
+            {item.is_active ? 'DEACTIVATE' : 'ACTIVATE'}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.stripDivider} />
+        <TouchableOpacity style={styles.stripButton} onPress={() => onAction('remove', item)}>
+          <Ionicons name="trash-outline" size={14} color="rgba(255,255,255,0.2)" />
+        </TouchableOpacity>
+      </View>
+    </BlurView>
+  </Animated.View>
+);
+
 export default function StudentsScreen({ navigation }) {
   const { colors } = useTheme();
-  const styles = getStyles(colors);
-
   const [students, setStudents] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { fetchStudents(); }, []);
+  useEffect(() => { 
+    const delayDebounceFn = setTimeout(() => {
+      fetchStudents();
+    }, 450);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
 
   const fetchStudents = async () => {
     try {
-      const res = await api.get('/admin/students');
+      const res = await api.get('/admin/students', {
+        params: { search: search || undefined }
+      });
       setStudents(res.data);
-    } catch (err) { console.log(err); }
+    } catch (err) {
+      console.log(err);
+      Alert.alert('Database Error', 'Unable to reach Student Data Center.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchStudents();
     setRefreshing(false);
+  }, [search]);
+
+  const handleAction = (type, student) => {
+    if (type === 'toggle_status') {
+      const nextStatus = !student.is_active;
+      Alert.alert(
+        nextStatus ? 'Activate Account' : 'Deactivate Account',
+        `Are you sure you want to ${nextStatus ? 'activate' : 'deactivate'} ${student.name}'s access?`,
+        [
+          { text: 'Abort', style: 'cancel' },
+          { 
+            text: nextStatus ? 'ACTIVATE' : 'DEACTIVATE',
+            style: nextStatus ? 'default' : 'destructive',
+            onPress: async () => {
+              try {
+                await api.patch(`/admin/users/${student.user_id}/status`, { is_active: nextStatus });
+                fetchStudents();
+              } catch (err) {
+                Alert.alert('Sync Error', 'Status update failed.');
+              }
+            }
+          }
+        ]
+      );
+    } else if (type === 'remove') {
+      Alert.alert(
+        'Hard Deletion',
+        `PERMANENTLY delete ${student.name}? This action is irreversible and clears all history.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'DELETE PERMANENTLY', 
+            style: 'destructive',
+            onPress: () => confirmRemoval(student, 'hard')
+          }
+        ]
+      );
+    } else {
+       Alert.alert('Intelligence Insight', `Profile: ${student?.name || 'User'}\nEmail: ${student?.email}\nStatus: ${student.is_active ? 'Active' : 'Inactive'}`);
+    }
   };
 
-  const removeStudent = (id, name) => {
-    Alert.alert('Remove Student', `Remove "${name}" from the app?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: async () => {
-        try {
-          await api.delete(`/admin/students/${id}`);
-          fetchStudents();
-        } catch (err) { Alert.alert('Error', 'Could not remove student'); }
-      }}
-    ]);
+  const confirmRemoval = (student, mode) => {
+    const title = mode === 'soft' ? 'Deactivate Account' : 'Permanent Deletion';
+    const msg = mode === 'soft' 
+      ? 'This will prevent the student from logging in but preserve their data.'
+      : 'WARNING: This will permanently delete the student and all their order history, transactions, and feedback. This cannot be undone.';
+
+    Alert.alert(
+      title,
+      msg,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: mode === 'soft' ? 'Deactivate' : 'DELETE PERMANENTLY',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/admin/students/${student.user_id}?mode=${mode}`);
+              Alert.alert('Success', `Student ${mode === 'soft' ? 'deactivated' : 'removed'} successfully.`);
+              fetchStudents();
+            } catch (err) {
+              Alert.alert('Error', err.response?.data?.error || 'Removal failed.');
+            }
+          }
+        }
+      ]
+    );
   };
+
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Students</Text>
-        <Text style={styles.count}>{students.length} total</Text>
-      </View>
-
-      <FlatList
-        data={students}
-        keyExtractor={item => item.user_id.toString()}
-        contentContainerStyle={{ padding: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6C63FF']}/>}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.card}
-            onPress={() => navigation.navigate('StudentOrderHistory', { user_id: item.user_id, name: item.name })}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
-            </View>
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.email}>{item.email}</Text>
-              <View style={styles.metaRow}>
-                <View style={styles.balanceBadge}>
-                  <Text style={styles.balanceText}>₹{item.wallet_balance} wallet</Text>
-                </View>
-                <View style={[styles.verifiedBadge, { backgroundColor: item.is_verified ? '#E8F5E9' : '#FFEBEE' }]}>
-                  <Text style={[styles.verifiedText, { color: item.is_verified ? '#4CAF50' : '#f44336' }]}>
-                    {item.is_verified ? 'Verified' : 'Unverified'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.date}>
-                Joined {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.removeBtn} onPress={() => removeStudent(item.user_id, item.name)}>
-              <Text style={styles.removeBtnText}>🗑</Text>
-            </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#0F0F12', '#1A1A1E', '#0F0F12']} style={StyleSheet.absoluteFill} />
+      
+      {/* Background Orbs */}
+      <View style={[styles.orb, { top: -80, right: -100, backgroundColor: 'rgba(255, 87, 34, 0.12)' }]} />
+      <View style={[styles.orb, { bottom: 100, left: -150, backgroundColor: 'rgba(255, 152, 0, 0.08)' }]} />
+      
+      <View style={{ flex: 1, paddingTop: insets.top }}>
+        <View style={styles.header}>
+          <LinearGradient 
+            colors={['rgba(255, 87, 34, 0.6)', 'rgba(255, 87, 34, 0.2)', 'transparent']} 
+            style={styles.headerMesh} 
+          />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+             <BlurView intensity={20} tint="light" style={styles.blurBtn}>
+                <Text style={styles.backIcon}>‹</Text>
+             </BlurView>
           </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🎓</Text>
-            <Text style={styles.emptyText}>No students registered yet</Text>
+          <View style={styles.titleArea}>
+            <Text style={styles.subtitle}>USER ARCHIVE</Text>
+            <Text style={styles.title}>Student Directory</Text>
           </View>
-        }
-      />
-    </SafeAreaView>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{students.length}</Text>
+          </View>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <BlurView intensity={10} tint="dark" style={styles.searchBlur}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              placeholder="Query User Archive..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+            />
+          </BlurView>
+        </View>
+
+        <FlatList
+          data={students}
+          keyExtractor={item => String(item.user_id)}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          renderItem={({ item, index }) => (
+            <StudentCard item={item} index={index} onAction={handleAction} />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+               <Text style={styles.emptyIcon}>🛰️</Text>
+               <Text style={styles.emptyText}>Archive Stream Empty</Text>
+               <Text style={styles.emptySubText}>No user records detected in the current sector.</Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF5722" />
+          }
+        />
+        </View>
+      </View>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: colors.headerText, fontSize: 32, lineHeight: 36 },
-  headerTitle: { color: colors.headerText, fontSize: 18, fontWeight: 'bold' },
-  count: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 2 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  avatarText: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
-  info: { flex: 1 },
-  name: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  email: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  metaRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  balanceBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  balanceText: { fontSize: 11, color: colors.primary, fontWeight: '600' },
-  verifiedBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  verifiedText: { fontSize: 11, fontWeight: '600' },
-  date: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
-  removeBtn: { padding: 8 },
-  removeBtnText: { fontSize: 20 },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 56, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: colors.textSecondary },
-}); 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F12' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingVertical: 15 
+  },
+  backButton: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 15, 
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+  },
+  blurBtn: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { fontSize: 32, color: '#FFF', fontWeight: '200', marginTop: -4 },
+  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150 },
+  titleArea: { alignItems: 'center' },
+  subtitle: { fontSize: 9, fontWeight: '900', color: '#FF5722', letterSpacing: 2.5, marginBottom: 4 },
+  title: { fontSize: 20, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  countBadge: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 12, 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  countText: { color: '#FF5722', fontWeight: '900', fontSize: 16 },
+
+  searchContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  searchBlur: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderRadius: 20, 
+    paddingHorizontal: 15, 
+    height: 54, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.08)' 
+  },
+  searchIcon: { fontSize: 16, marginRight: 12, opacity: 0.6 },
+  searchInput: { flex: 1, color: '#FFF', fontSize: 15, fontWeight: '600' },
+
+  listContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 100 },
+  columnWrapper: { justifyContent: 'space-between' },
+  cardContainer: { width: (width - 48) / 2, marginBottom: 16, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  cardBlur: { },
+  cardMain: { padding: 16, alignItems: 'center' },
+  profileSection: { alignItems: 'center', marginBottom: 12 },
+  avatarContainer: { width: 64, height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  avatarText: { fontSize: 28, fontWeight: '900', color: '#FFF' },
+  metaInfo: { alignItems: 'center', marginLeft: 0 },
+  username: { fontSize: 16, fontWeight: '900', color: '#FFF', textAlign: 'center' },
+  email: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2, textAlign: 'center' },
+  nodeId: { fontSize: 8, fontWeight: '800', color: 'rgba(255,255,255,0.2)', letterSpacing: 1, marginTop: 4 },
+  
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 12, width: '100%' },
+  
+  balanceSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  balanceItem: { flex: 1, alignItems: 'center' },
+  balanceLabel: { fontSize: 8, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 1, marginBottom: 2 },
+  balanceValue: { fontSize: 14, fontWeight: '800', color: '#FFF' },
+  verticalDivider: { width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.05)' },
+
+  actionStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  stripButton: { flex: 1, height: 40, justifyContent: 'center', alignItems: 'center' },
+  stripButtonText: { fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.6)', letterSpacing: 1 },
+  stripDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.05)' },
+
+  emptyContainer: { flex: 1, alignItems: 'center', marginTop: 100 },
+  emptyIcon: { fontSize: 60, opacity: 0.2, marginBottom: 20 },
+  emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: '800' },
+  emptySubText: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
+  headerMesh: { position: 'absolute', top: 0, left: 0, right: 0, height: 120, zIndex: -1 }
+});
