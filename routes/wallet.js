@@ -48,15 +48,15 @@ router.post('/verify', async (req, res) => {
   const { transaction_id, status } = req.body; // status: 'completed' or 'rejected'
   try {
     if (status === 'completed') {
-      const trans = await db.query('SELECT * FROM wallet_transactions WHERE transaction_id = $1', [transaction_id]);
+      const trans = await db.query('SELECT * FROM wallet_transactions WHERE txn_id = $1', [transaction_id]);
       if (trans.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
       const { user_id, amount } = trans.rows[0];
       
       await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
-      await db.query('UPDATE wallet_transactions SET status = \'completed\' WHERE transaction_id = $1', [transaction_id]);
+      await db.query('UPDATE wallet_transactions SET status = \'completed\' WHERE txn_id = $1', [transaction_id]);
       return res.json({ message: 'Transaction approved and balance updated!' });
     } else {
-      await db.query('UPDATE wallet_transactions SET status = \'rejected\' WHERE transaction_id = $1', [transaction_id]);
+      await db.query('UPDATE wallet_transactions SET status = \'rejected\' WHERE txn_id = $1', [transaction_id]);
       return res.json({ message: 'Transaction rejected.' });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
