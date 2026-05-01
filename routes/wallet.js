@@ -43,22 +43,47 @@ router.get('/pending', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Verify/Approve a top-up (Admin Only)
+// Verify/Approve a top-up or withdrawal (Admin Only)
 router.post('/verify', async (req, res) => {
   const { transaction_id, status } = req.body; // status: 'completed' or 'rejected'
   try {
+    const trans = await db.query('SELECT * FROM wallet_transactions WHERE txn_id = $1', [transaction_id]);
+    if (trans.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    const { user_id, amount, type } = trans.rows[0];
+
     if (status === 'completed') {
-      const trans = await db.query('SELECT * FROM wallet_transactions WHERE txn_id = $1', [transaction_id]);
-      if (trans.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
-      const { user_id, amount } = trans.rows[0];
-      
-      await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
+      if (type === 'credit') {
+        await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
+      }
       await db.query('UPDATE wallet_transactions SET status = \'completed\' WHERE txn_id = $1', [transaction_id]);
-      return res.json({ message: 'Transaction approved and balance updated!' });
+      return res.json({ message: 'Transaction approved!' });
     } else {
+      if (type === 'debit') {
+        // refund the balance if withdrawal rejected
+        await db.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2', [amount, user_id]);
+      }
       await db.query('UPDATE wallet_transactions SET status = \'rejected\' WHERE txn_id = $1', [transaction_id]);
       return res.json({ message: 'Transaction rejected.' });
     }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/withdraw-request', async (req, res) => {
+  const { user_id, amount, payment_method } = req.body;
+  try {
+    const result = await db.query('SELECT wallet_balance FROM users WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const balance = result.rows[0].wallet_balance;
+    if (balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
+    
+    await db.query('UPDATE users SET wallet_balance = wallet_balance - $1 WHERE user_id = $2', [amount, user_id]);
+    
+    const txn = await db.query(
+      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method, status) VALUES ($1,$2,$3,$4,$5) RETURNING txn_id as transaction_id',
+      [user_id, amount, 'debit', payment_method || 'withdrawal', 'pending']
+    );
+    res.json({ message: 'Withdrawal request submitted!', transactionId: txn.rows[0].transaction_id });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

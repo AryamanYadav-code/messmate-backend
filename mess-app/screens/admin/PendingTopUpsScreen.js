@@ -30,11 +30,12 @@ export default function PendingTopUpsScreen({ navigation }) {
     }
   };
 
-  const handleVerify = async (transaction_id, status) => {
-    const action = status === 'completed' ? 'Approve' : 'Reject';
+  const handleVerify = async (transaction_id, status, type) => {
+    const isWithdrawal = type === 'debit';
+    const action = status === 'completed' ? (isWithdrawal ? 'Approve Withdrawal' : 'Approve Top-up') : 'Reject';
     Alert.alert(
-      `${action} Transaction?`,
-      `Are you sure you want to ${action.toLowerCase()} this wallet top-up?`,
+      `${action}?`,
+      `Are you sure you want to ${action.toLowerCase()} this transaction?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -111,8 +112,15 @@ const RequestCard = ({ item, index, onVerify }) => {
             <Text style={styles.userId}>ID: {item.user_id}</Text>
           </View>
           <View style={styles.amountBox}>
-            <Text style={styles.amountSymbol}>₹</Text>
-            <Text style={styles.amountText}>{item.amount}</Text>
+            <Text style={[styles.typeLabel, item.type === 'debit' && { color: '#4CAF50', borderColor: '#4CAF50' }]}>
+              {item.type === 'debit' ? 'WITHDRAWAL' : 'TOP-UP'}
+            </Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <View style={styles.amountBoxInner}>
+                <Text style={[styles.amountSymbol, item.type === 'debit' && { color: '#4CAF50' }]}>₹</Text>
+                <Text style={styles.amountText}>{item.amount}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -137,14 +145,14 @@ const RequestCard = ({ item, index, onVerify }) => {
         <View style={styles.actionRow}>
           <TouchableOpacity 
             style={[styles.actionBtn, styles.rejectBtn]} 
-            onPress={() => onVerify(item.transaction_id, 'rejected')}
+            onPress={() => onVerify(item.transaction_id, 'rejected', item.type)}
           >
             <Text style={styles.rejectBtnText}>REJECT</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.actionBtn, styles.approveBtn]} 
-            onPress={() => onVerify(item.transaction_id, 'completed')}
+            onPress={() => onVerify(item.transaction_id, 'completed', item.type)}
           >
             <LinearGradient 
               colors={['#4CAF50', '#388E3C']} 
@@ -203,7 +211,9 @@ const styles = StyleSheet.create({
   userName: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   userId: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '700', marginTop: 2 },
   
-  amountBox: { flexDirection: 'row', alignItems: 'baseline' },
+  amountBox: { alignItems: 'flex-end', gap: 6 },
+  amountBoxInner: { flexDirection: 'row', alignItems: 'baseline' },
+  typeLabel: { fontSize: 8, fontWeight: '900', color: '#FF5722', borderWidth: 1, borderColor: '#FF5722', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, letterSpacing: 0.5 },
   amountSymbol: { color: '#FF5722', fontSize: 14, fontWeight: '900', marginRight: 4 },
   amountText: { color: '#FFF', fontSize: 24, fontWeight: '900' },
   

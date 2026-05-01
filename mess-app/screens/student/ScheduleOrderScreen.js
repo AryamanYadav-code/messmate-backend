@@ -29,6 +29,8 @@ export default function ScheduleOrderScreen({ navigation }) {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuLoading, setMenuLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('wallet');
+  const [balance, setBalance] = useState(0);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -42,7 +44,16 @@ export default function ScheduleOrderScreen({ navigation }) {
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     fetchMenu();
+    fetchBalance();
   }, [selectedSlot]);
+
+  const fetchBalance = async () => {
+    try {
+      const id = await AsyncStorage.getItem('user_id');
+      const res = await api.get(`/wallet/balance/${id}`);
+      setBalance(res.data.balance);
+    } catch (err) { console.log('Balance Error:', err); }
+  };
 
   const fetchMenu = async () => {
     setMenuLoading(true);
@@ -73,15 +84,19 @@ export default function ScheduleOrderScreen({ navigation }) {
 
   const placeScheduledOrder = async () => {
     if (cart.length === 0) return Alert.alert('Error', 'Please add items to cart!');
+    if (paymentMethod === 'wallet' && total > balance) return Alert.alert('Insufficient Balance', 'Please recharge your wallet.');
+    
     setLoading(true);
     try {
       const user_id = await AsyncStorage.getItem('user_id');
 
-      // Pay from wallet
-      await api.post('/wallet/pay', {
-        user_id: parseInt(user_id),
-        amount: total
-      });
+      if (paymentMethod === 'wallet') {
+        // Pay from wallet
+        await api.post('/wallet/pay', {
+          user_id: parseInt(user_id),
+          amount: total
+        });
+      }
 
       // Place scheduled order
       const res = await api.post('/orders', {
@@ -90,7 +105,8 @@ export default function ScheduleOrderScreen({ navigation }) {
         total_amount: total,
         meal_slot: selectedSlot,
         is_scheduled: true,
-        scheduled_date: tomorrowStr
+        scheduled_date: tomorrowStr,
+        payment_method: paymentMethod
       });
 
       Alert.alert(
@@ -211,12 +227,38 @@ export default function ScheduleOrderScreen({ navigation }) {
 
       {cart.length > 0 && (
         <View style={styles.footer}>
-           <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.footerBlur}>
-              <View style={styles.footerStats}>
-                 <Text style={styles.statsLabel}>RESERVATION TOTAL</Text>
-                 <Text style={styles.statsValue}>₹{total.toFixed(2)}</Text>
-              </View>
-              <TouchableOpacity style={styles.confirmBtn} onPress={placeScheduledOrder} disabled={loading}>
+            <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.footerBlur}>
+               <View style={styles.footerMain}>
+                  <View style={styles.paymentSelector}>
+                    <TouchableOpacity 
+                      style={[styles.payMethod, paymentMethod === 'wallet' && styles.payMethodActive]}
+                      onPress={() => setPaymentMethod('wallet')}
+                    >
+                      <Ionicons name="wallet-outline" size={14} color={paymentMethod === 'wallet' ? '#FFF' : colors.textSecondary} />
+                      <Text style={[styles.payMethodText, paymentMethod === 'wallet' && { color: '#FFF' }]}>WALLET</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.payMethod, paymentMethod === 'cash' && styles.payMethodActive]}
+                      onPress={() => setPaymentMethod('cash')}
+                    >
+                      <Ionicons name="cash-outline" size={14} color={paymentMethod === 'cash' ? '#FFF' : colors.textSecondary} />
+                      <Text style={[styles.payMethodText, paymentMethod === 'cash' && { color: '#FFF' }]}>CASH</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.footerStats}>
+                    <Text style={styles.statsLabel}>RESERVATION TOTAL</Text>
+                    <Text style={styles.statsValue}>₹{total.toFixed(2)}</Text>
+                    {paymentMethod === 'wallet' && balance < total && (
+                      <Text style={styles.balanceError}>INSUFFICIENT FUNDS</Text>
+                    )}
+                  </View>
+               </View>
+               <TouchableOpacity 
+                style={[styles.confirmBtn, (loading || (paymentMethod === 'wallet' && balance < total)) && { opacity: 0.5 }]} 
+                onPress={placeScheduledOrder} 
+                disabled={loading || (paymentMethod === 'wallet' && balance < total)}
+               >
                  <LinearGradient colors={[colors.primary, '#F4511E']} style={styles.confirmGrad}>
                     {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.confirmText}>SECURE RESERVATION</Text>}
                  </LinearGradient>
@@ -278,5 +320,12 @@ const getStyles = (colors, isDark) => StyleSheet.create({
   statsValue: { fontSize: 20, fontWeight: '900', color: colors.primary },
   confirmBtn: { flex: 1, borderRadius: 20, overflow: 'hidden' },
   confirmGrad: { paddingVertical: 18, alignItems: 'center' },
-  confirmText: { color: '#FFF', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 }
+  confirmText: { color: '#FFF', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
+
+  footerMain: { flex: 1, marginRight: 15 },
+  paymentSelector: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  payMethod: { flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, gap: 4 },
+  payMethodActive: { backgroundColor: colors.primary },
+  payMethodText: { fontSize: 9, fontWeight: '900', color: colors.textSecondary },
+  balanceError: { fontSize: 8, color: '#FF5252', fontWeight: '900', marginTop: 2 }
 });

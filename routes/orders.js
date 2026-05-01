@@ -18,14 +18,14 @@ const VALID_ORDER_STATUSES = new Set([
 ]);
 
 router.post('/', async (req, res) => {
-  const { user_id, items, total_amount, meal_slot, special_note, is_scheduled, scheduled_date } = req.body;
+  const { user_id, items, total_amount, meal_slot, special_note, is_scheduled, scheduled_date, payment_method } = req.body;
   const pickup_code = generateCode();
   try {
     const result = await db.query(
       `INSERT INTO orders 
-       (user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled, scheduled_date) 
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING order_id`,
-      [user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled || false, scheduled_date || null]
+       (user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled, scheduled_date, payment_method) 
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING order_id`,
+      [user_id, total_amount, meal_slot, special_note, pickup_code, is_scheduled || false, scheduled_date || null, payment_method || 'wallet']
     );
     const order_id = result.rows[0].order_id;
     for (const item of items) {
@@ -70,15 +70,17 @@ router.delete('/:order_id/cancel', async (req, res) => {
     if (order.status !== 'pending')
       return res.status(400).json({ error: 'Order cannot be cancelled at this stage' });
 
-    // Refund wallet
-    await db.query(
-      'UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2',
-      [order.total_amount, order.user_id]
-    );
-    await db.query(
-      'INSERT INTO wallet_transactions (user_id, amount, type, payment_method) VALUES ($1,$2,$3,$4)',
-      [order.user_id, order.total_amount, 'credit', 'refund']
-    );
+    if (order.payment_method === 'wallet') {
+      // Refund wallet
+      await db.query(
+        'UPDATE users SET wallet_balance = wallet_balance + $1 WHERE user_id = $2',
+        [order.total_amount, order.user_id]
+      );
+      await db.query(
+        'INSERT INTO wallet_transactions (user_id, amount, type, payment_method) VALUES ($1,$2,$3,$4)',
+        [order.user_id, order.total_amount, 'credit', 'refund']
+      );
+    }
     await db.query('UPDATE orders SET status = $1 WHERE order_id = $2', ['rejected', req.params.order_id]);
 
     res.json({ message: 'Order cancelled and refunded!' });

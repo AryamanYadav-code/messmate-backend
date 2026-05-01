@@ -20,6 +20,7 @@ export default function WalletScreen({ navigation }) {
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('STUDENT');
   const [loading, setLoading] = useState(false);
+  const [actionType, setActionType] = useState('add');
 
   useEffect(() => {
     AsyncStorage.multiGet(['user_id', 'user_name']).then(values => {
@@ -46,10 +47,31 @@ export default function WalletScreen({ navigation }) {
     } catch (err) { console.log(err); }
   };
 
-  const addMoney = (quickAmount) => {
+  const handleAction = async (quickAmount) => {
     const finalAmount = quickAmount || parseFloat(amount);
     if (!finalAmount || finalAmount <= 0) return Alert.alert('Error', 'Enter a valid amount');
-    navigation.navigate('WalletTopUp', { amount: finalAmount });
+    
+    if (actionType === 'add') {
+      navigation.navigate('WalletTopUp', { amount: finalAmount });
+    } else {
+      if (finalAmount > balance) return Alert.alert('Error', 'Insufficient balance');
+      setLoading(true);
+      try {
+        const res = await api.post('/wallet/withdraw-request', {
+          user_id: parseInt(userId),
+          amount: finalAmount,
+          payment_method: 'cash' // Or whatever default they prefer
+        });
+        Alert.alert('Request Submitted', 'Your withdrawal request is pending admin approval.');
+        setAmount('');
+        fetchBalance(userId);
+        fetchHistory(userId);
+      } catch (err) {
+        Alert.alert('Error', err.response?.data?.error || 'Failed to submit withdrawal request');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const QUICK_AMOUNTS = [50, 100, 200, 500];
@@ -116,8 +138,19 @@ export default function WalletScreen({ navigation }) {
 
         {/* Action Section */}
         <Animated.View entering={FadeInDown.duration(800).delay(400)} style={styles.actionSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Add Funds</Text>
+          <View style={styles.actionTabs}>
+            <TouchableOpacity 
+              style={[styles.actionTab, actionType === 'add' && styles.actionTabActive]} 
+              onPress={() => setActionType('add')}
+            >
+              <Text style={[styles.actionTabText, actionType === 'add' && { color: '#FFF' }]}>Add Funds</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.actionTab, actionType === 'withdraw' && styles.actionTabActive]} 
+              onPress={() => setActionType('withdraw')}
+            >
+              <Text style={[styles.actionTabText, actionType === 'withdraw' && { color: '#FFF' }]}>Withdraw</Text>
+            </TouchableOpacity>
           </View>
           
           <View style={styles.quickAmounts}>
@@ -126,9 +159,9 @@ export default function WalletScreen({ navigation }) {
                 key={amt} 
                 activeOpacity={0.7}
                 style={styles.quickBtn} 
-                onPress={() => addMoney(amt)}
+                onPress={() => handleAction(amt)}
               >
-                <Text style={styles.quickBtnAmount}>+₹{amt}</Text>
+                <Text style={styles.quickBtnAmount}>{actionType === 'add' ? '+' : '-'}₹{amt}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -149,16 +182,16 @@ export default function WalletScreen({ navigation }) {
             <TouchableOpacity
               activeOpacity={0.8}
               style={[styles.addBtn, loading && styles.addBtnDisabled]}
-              onPress={() => addMoney(null)}
+              onPress={() => handleAction(null)}
               disabled={loading}
             >
               <LinearGradient 
-                colors={['#FF5722', '#F4511E']} 
+                colors={actionType === 'add' ? ['#FF5722', '#F4511E'] : ['#4CAF50', '#2E7D32']} 
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.addGradient}
               >
-                <Text style={styles.addBtnText}>{loading ? '...' : 'RECHARGE'}</Text>
+                <Text style={styles.addBtnText}>{loading ? '...' : (actionType === 'add' ? 'RECHARGE' : 'WITHDRAW')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -284,8 +317,10 @@ const getStyles = (colors, isDark) => StyleSheet.create({
   secureText: { color: '#FFF', fontSize: 10, fontWeight: '900', opacity: 0.8 },
   
   actionSection: { marginBottom: 40 },
-  sectionHeader: { marginBottom: 18, paddingLeft: 4 },
-  sectionTitle: { fontSize: 14, fontWeight: '900', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 },
+  actionTabs: { flexDirection: 'row', backgroundColor: '#1A1A24', borderRadius: 20, padding: 4, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  actionTab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 16 },
+  actionTabActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  actionTabText: { color: 'rgba(255,255,255,0.4)', fontWeight: '800', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 },
   
   quickAmounts: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   quickBtn: { 
