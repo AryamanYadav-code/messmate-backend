@@ -27,6 +27,7 @@ export default function CartScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState('lunch');
+  const [paymentMethod, setPaymentMethod] = useState('wallet');
 
   // Animations
   const orbAnim = useRef(new Animated.Value(0)).current;
@@ -67,17 +68,19 @@ export default function CartScreen({ route, navigation }) {
 
   const placeOrder = async () => {
     if (cart.length === 0) return Alert.alert('Cart is empty!');
-    if (total > balance) return Alert.alert('Insufficient Balance', 'Please recharge your wallet.');
+    if (paymentMethod === 'wallet' && total > balance) return Alert.alert('Insufficient Balance', 'Please recharge your wallet.');
 
     setLoading(true);
     try {
       const user_id = await AsyncStorage.getItem('user_id');
       
-      // Debit wallet
-      await api.post('/wallet/pay', {
-        user_id: parseInt(user_id),
-        amount: total
-      });
+      if (paymentMethod === 'wallet') {
+        // Debit wallet
+        await api.post('/wallet/pay', {
+          user_id: parseInt(user_id),
+          amount: total
+        });
+      }
 
       // Create order
       const res = await api.post('/orders', {
@@ -85,6 +88,7 @@ export default function CartScreen({ route, navigation }) {
         items: cart.map(c => ({ item_id: c.item_id, quantity: c.quantity, price: c.price })),
         total_amount: total,
         meal_slot: selectedSlot,
+        payment_method: paymentMethod
       });
 
       Alert.alert('Success! 🎉', 'Your order was placed successfully.');
@@ -229,6 +233,26 @@ export default function CartScreen({ route, navigation }) {
                      <Text style={styles.secureText}>SECURE</Text>
                   </View>
                </View>
+
+               <View style={styles.paymentMethodWrap}>
+                 <Text style={styles.sectionTitle}>PAYMENT METHOD</Text>
+                 <View style={styles.paymentMethodRow}>
+                   <TouchableOpacity 
+                     style={[styles.payMethodBtn, paymentMethod === 'wallet' && styles.payMethodBtnActive]}
+                     onPress={() => setPaymentMethod('wallet')}
+                   >
+                     <Ionicons name="wallet-outline" size={18} color={paymentMethod === 'wallet' ? colors.primary : colors.textSecondary} />
+                     <Text style={[styles.payMethodText, paymentMethod === 'wallet' && { color: colors.primary }]}>Digital Wallet</Text>
+                   </TouchableOpacity>
+                   <TouchableOpacity 
+                     style={[styles.payMethodBtn, paymentMethod === 'cash' && styles.payMethodBtnActive]}
+                     onPress={() => setPaymentMethod('cash')}
+                   >
+                     <Ionicons name="cash-outline" size={18} color={paymentMethod === 'cash' ? '#4CAF50' : colors.textSecondary} />
+                     <Text style={[styles.payMethodText, paymentMethod === 'cash' && { color: '#4CAF50' }]}>Cash Counter</Text>
+                   </TouchableOpacity>
+                 </View>
+               </View>
                
                <View style={styles.summaryRow}>
                  <Text style={styles.summaryLabel}>Digital Waller Balance</Text>
@@ -250,28 +274,28 @@ export default function CartScreen({ route, navigation }) {
                </View>
 
                <TouchableOpacity 
-                style={[styles.payBtn, (loading || remainingBalance < 0) && styles.payBtnDisabled]}
+                style={[styles.payBtn, (loading || (paymentMethod === 'wallet' && remainingBalance < 0)) && styles.payBtnDisabled]}
                 onPress={placeOrder}
-                disabled={loading || remainingBalance < 0}
+                disabled={loading || (paymentMethod === 'wallet' && remainingBalance < 0)}
                >
                  <LinearGradient 
-                   colors={remainingBalance < 0 ? ['#444', '#222'] : [colors.primary, '#C41C00']} 
+                   colors={(paymentMethod === 'wallet' && remainingBalance < 0) ? ['#444', '#222'] : [colors.primary, '#C41C00']} 
                    style={styles.payGrad}
                  >
                    {loading ? (
                      <ActivityIndicator color="#FFF" />
                    ) : (
                      <View style={styles.payIn}>
-                        <Ionicons name={remainingBalance < 0 ? "warning-outline" : "finger-print-outline"} size={20} color="#FFF" style={{ marginRight: 10 }} />
+                        <Ionicons name={(paymentMethod === 'wallet' && remainingBalance < 0) ? "warning-outline" : "finger-print-outline"} size={20} color="#FFF" style={{ marginRight: 10 }} />
                         <Text style={styles.payText}>
-                          {remainingBalance < 0 ? 'INSUFFICIENT BALANCE' : 'AUTHORIZE PAYMENT'}
+                          {(paymentMethod === 'wallet' && remainingBalance < 0) ? 'INSUFFICIENT BALANCE' : 'AUTHORIZE PAYMENT'}
                         </Text>
                      </View>
                    )}
                  </LinearGradient>
                </TouchableOpacity>
 
-               {remainingBalance < 0 && (
+               {paymentMethod === 'wallet' && remainingBalance < 0 && (
                  <TouchableOpacity style={styles.rechargeBox} onPress={() => navigation.navigate('Wallet')}>
                     <Text style={styles.rechargeHint}>Deficit: ₹{Math.abs(remainingBalance).toFixed(2)} • <Text style={{ color: colors.primary }}>RECHARGE NOW ›</Text></Text>
                  </TouchableOpacity>
@@ -350,5 +374,11 @@ const getStyles = (colors, isDark) => StyleSheet.create({
   payText: { color: '#FFF', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
 
   rechargeBox: { marginTop: 20, alignItems: 'center' },
-  rechargeHint: { color: colors.textSecondary, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 }
+  rechargeHint: { color: colors.textSecondary, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+
+  paymentMethodWrap: { marginBottom: 20 },
+  paymentMethodRow: { flexDirection: 'row', gap: 10 },
+  payMethodBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 15, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', gap: 6 },
+  payMethodBtnActive: { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFF', borderColor: colors.primary, elevation: 2 },
+  payMethodText: { fontSize: 12, fontWeight: '800', color: colors.textSecondary }
 });

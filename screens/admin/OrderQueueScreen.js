@@ -71,16 +71,19 @@ export default function OrderQueueScreen({ navigation }) {
     } catch (err) { Alert.alert('Comm Error', 'Status sync failed'); }
   };
 
-  const rejectOrder = (order_id) => {
+  const rejectOrder = (order) => {
+    const isWallet = order.payment_method === 'wallet';
     Alert.alert(
       "Void Transaction",
-      "Rejecting this order will trigger a mandatory wallet refund. Proceed?",
+      isWallet 
+        ? "Rejecting this order will trigger a mandatory wallet refund. Proceed?" 
+        : "Rejecting this order will void the transaction. No wallet refund needed as this was a CASH order. Proceed?",
       [
         { text: "Abort", style: "cancel" },
         {
           text: "Void Order", style: "destructive", onPress: async () => {
             try {
-              await api.delete(`/orders/${order_id}/cancel`);
+              await api.delete(`/orders/${order.order_id}/cancel`);
               fetchOrders();
             } catch (err) { Alert.alert('Error', 'Could not void order'); }
           }
@@ -162,9 +165,19 @@ export default function OrderQueueScreen({ navigation }) {
                 <Ionicons name="calendar-outline" size={10} color="rgba(255,255,255,0.4)" />
                 <Text style={styles.slotText}>{item.meal_slot}</Text>
               </View>
+              <View style={[styles.paymentBadge, item.payment_method === 'cash' && styles.cashBadge]}>
+                <Ionicons 
+                  name={item.payment_method === 'cash' ? "cash-outline" : "wallet-outline"} 
+                  size={10} 
+                  color={item.payment_method === 'cash' ? "#FFD700" : "rgba(255,255,255,0.4)"} 
+                />
+                <Text style={[styles.paymentText, item.payment_method === 'cash' && { color: '#FFD700' }]}>
+                  {item.payment_method?.toUpperCase() || 'WALLET'}
+                </Text>
+              </View>
               {item.is_takeaway && (
                 <View style={styles.takeawayBadge}>
-                  <Ionicons name="bag-handle-outline" size={10} color="#FFD700" />
+                  <Ionicons name="bag-handle-outline" size={10} color="#4CAF50" />
                   <Text style={styles.takeawayText}>PARCEL</Text>
                 </View>
               )}
@@ -193,7 +206,7 @@ export default function OrderQueueScreen({ navigation }) {
             {(item.status === 'pending' || item.status === 'approved') && (
                <TouchableOpacity 
                 style={styles.cancelAction}
-                onPress={() => rejectOrder(item.order_id)}
+                onPress={() => rejectOrder(item)}
               >
                 <Ionicons name="close-circle-outline" size={20} color="rgba(255, 82, 82, 0.5)" />
               </TouchableOpacity>
@@ -360,10 +373,11 @@ const styles = StyleSheet.create({
   amountText: { fontSize: 24, fontWeight: '900', color: '#FFF', marginTop: -4 },
 
   metaRow: { flexDirection: 'row', marginTop: 16, gap: 12 },
-  slotBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  slotText: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)', marginLeft: 6, textTransform: 'uppercase' },
-  takeawayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  takeawayText: { fontSize: 10, fontWeight: '900', color: '#FFD700', marginLeft: 6 },
+  paymentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  paymentText: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)', marginLeft: 6 },
+  cashBadge: { backgroundColor: 'rgba(255,215,0,0.1)', borderColor: 'rgba(255,215,0,0.2)', borderWidth: 1 },
+  takeawayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(76,175,80,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  takeawayText: { fontSize: 10, fontWeight: '900', color: '#4CAF50', marginLeft: 6 },
 
   actionToolbar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.03)', backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, gap: 12 },
   primaryAction: { flex: 1, flexDirection: 'row', height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

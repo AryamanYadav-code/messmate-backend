@@ -87,7 +87,19 @@ const HistoryCard = ({ item, index }) => {
         </View>
 
         <View style={styles.tileFooter}>
-          <Text style={styles.amountMini}>₹{parseFloat(item.total_amount).toLocaleString()}</Text>
+          <View>
+            <Text style={styles.amountMini}>₹{parseFloat(item.total_amount).toLocaleString()}</Text>
+            <View style={styles.paymentMini}>
+              <Ionicons 
+                name={item.payment_method === 'cash' ? "cash-outline" : "wallet-outline"} 
+                size={8} 
+                color={item.payment_method === 'cash' ? "#FFD700" : "rgba(255,255,255,0.4)"} 
+              />
+              <Text style={[styles.paymentTextMini, item.payment_method === 'cash' && { color: '#FFD700' }]}>
+                {item.payment_method?.toUpperCase() || 'WALLET'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.slotMini}>
             <Text style={styles.slotLabelMini}>
               {item.meal_slot === 'breakfast' ? '🍳' : 
@@ -243,7 +255,9 @@ const styles = StyleSheet.create({
   moreItemsMini: { fontSize: 8, color: '#FF5722', fontWeight: '800', marginTop: 2 },
 
   tileFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.03)' },
-  amountMini: { fontSize: 14, fontWeight: '900', color: '#FFF' },
+  amountMini: { fontSize: 13, fontWeight: '900', color: '#FFF' },
+  paymentMini: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 },
+  paymentTextMini: { fontSize: 7, fontWeight: '900', color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5 },
   slotMini: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: 4 },
   slotLabelMini: { fontSize: 12 },
 
