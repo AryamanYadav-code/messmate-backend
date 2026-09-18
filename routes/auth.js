@@ -8,6 +8,7 @@ const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const auth = require('../middleware/auth');
+const { sendEmail } = require('../utils/mailer');
 // Send OTP
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
@@ -31,30 +32,25 @@ router.post('/send-otp', async (req, res) => {
       [cleanEmail, otp, expires_at]
     );
 
-  await axios.post('https://api.brevo.com/v3/smtp/email', {
-  sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
-  to: [{ email: cleanEmail }],
-  subject: 'Your SRM_KITCHEN Verification Code',
-  htmlContent: `
-    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
-      <h2 style="color: #6C63FF;">SRM_KITCHEN Email Verification</h2>
-      <p>Your verification code is:</p>
-      <div style="background: #f0f0ff; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
-        <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
-      </div>
-      <p style="color: #888;">This code expires in 10 minutes.</p>
-    </div>
-  `
-}, {
-  headers: {
-    'api-key': process.env.BREVO_API_KEY,
-    'Content-Type': 'application/json'
-  }
-});
+    await sendEmail({
+      to: cleanEmail,
+      subject: 'Your SRM_KITCHEN Verification Code',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto;">
+          <h2 style="color: #6C63FF;">SRM_KITCHEN Email Verification</h2>
+          <p>Your verification code is:</p>
+          <div style="background: #f0f0ff; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
+            <h1 style="color: #6C63FF; letter-spacing: 8px; margin: 0;">${otp}</h1>
+          </div>
+          <p style="color: #888;">This code expires in 10 minutes.</p>
+        </div>
+      `
+    });
 
     res.json({ message: 'OTP sent successfully!' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Send OTP Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send OTP' });
   }
 });
 
@@ -259,9 +255,8 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetLink = `https://messmate-backend-gmb0.onrender.com/api/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(cleanEmail)}`;
 
-    await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
-      to: [{ email: cleanEmail }],
+    await sendEmail({
+      to: cleanEmail,
       subject: 'SRM_KITCHEN Password Reset',
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
@@ -277,13 +272,12 @@ router.post('/forgot-password', async (req, res) => {
           <p style="color: #888;">If you did not request this, please ignore this email.</p>
         </div>
       `
-    }, {
-      headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' }
     });
 
     res.json({ message: 'Password reset link sent to your email!' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Forgot Password Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send reset link' });
   }
 });
 
@@ -427,9 +421,8 @@ router.post('/change-password/send-otp', async (req, res) => {
     await db.query('DELETE FROM otp_codes WHERE email = $1', [email]);
     await db.query('INSERT INTO otp_codes (email, otp, expires_at) VALUES ($1,$2,$3)', [email, otp, expires_at]);
 
-    await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
-      to: [{ email }],
+    await sendEmail({
+      to: email,
       subject: 'SRM_KITCHEN — Password Change Verification',
       htmlContent: `
         <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto">
@@ -443,11 +436,12 @@ router.post('/change-password/send-otp', async (req, res) => {
           <p style="color:#888">If you didn't request this, someone on your device may have opened Settings.</p>
         </div>
       `
-    }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' } });
+    });
 
     res.json({ message: `OTP sent to your registered email`, email: email.replace(/(.{2}).+(@.+)/, '$1***$2') });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Change Password Send OTP Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send OTP' });
   }
 });
 

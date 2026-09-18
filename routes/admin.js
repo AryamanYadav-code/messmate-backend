@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const axios = require('axios');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { sendEmail } = require('../utils/mailer');
 
 // Middleware to check if user is superadmin
 const isSuperAdmin = (req) => req.user.role === 'superadmin';
@@ -275,9 +276,8 @@ router.post('/staff', verifySuperAdmin, async (req, res) => {
     // Send verification email
     const verifyLink = `https://messmate-backend-gmb0.onrender.com/api/admin/verify-staff?token=${encodeURIComponent(token)}&email=${encodeURIComponent(cleanEmail)}`;
 
-    await axios.post('https://api.brevo.com/v3/smtp/email', {
-      sender: { name: 'SRM_KITCHEN App', email: 'aryamanyadav19@gmail.com' },
-      to: [{ email: cleanEmail }],
+    await sendEmail({
+      to: cleanEmail,
       subject: 'SRM_KITCHEN Staff Account Verification',
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
@@ -293,17 +293,13 @@ router.post('/staff', verifySuperAdmin, async (req, res) => {
           <p style="color: #888;">If you didn't expect this email, ignore it.</p>
         </div>
       `
-    }, {
-      headers: {
-        'api-key': process.env.BREVO_API_KEY,
-        'Content-Type': 'application/json'
-      }
     });
 
     res.json({ message: 'Staff registered! Verification email sent.' });
   } catch (err) {
+    console.error('Register Staff Error:', err);
     if (err.code === '23505') return res.status(400).json({ error: 'Email already registered!' });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || 'Failed to register staff' });
   }
 });
 
