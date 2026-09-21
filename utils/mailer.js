@@ -82,7 +82,7 @@ async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN A
 
   // 3. Try Brevo SMTP / Custom SMTP if BREVO_USER / SMTP_USER and BREVO_PASS / SMTP_PASS are set
   const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-  const port = parseInt(process.env.SMTP_PORT || '587');
+  const port = parseInt(process.env.SMTP_PORT || '465');
   const user = process.env.SMTP_USER || process.env.BREVO_USER;
   const pass = process.env.SMTP_PASS || process.env.BREVO_PASS;
 
