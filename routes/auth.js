@@ -13,7 +13,6 @@ const { sendEmail } = require('../utils/mailer');
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
   const cleanEmail = (email || '').trim().toLowerCase();
-  console.log(`[send-otp] Request received for email: ${cleanEmail}`);
   if (!cleanEmail) return res.status(400).json({ error: 'Email is required' });
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
