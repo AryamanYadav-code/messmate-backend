@@ -2,7 +2,7 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 
 /**
- * Sends an email using Brevo HTTP API, Gmail SMTP, or Custom SMTP with strict timeouts.
+ * Sends an email using Brevo HTTP API, Gmail SMTP, or Brevo/Custom SMTP.
  * @param {Object} options
  * @param {string} options.to - Recipient email address
  * @param {string} options.subject - Email subject
@@ -10,14 +10,16 @@ const nodemailer = require('nodemailer');
  * @param {string} [options.senderName='SRM_KITCHEN App'] - Sender name
  */
 async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN App' }) {
-  const senderEmail = process.env.SENDER_EMAIL || process.env.BREVO_USER || 'aryamanyadav19@gmail.com';
+  const senderEmail = process.env.SENDER_EMAIL || 'aryamanyadav19@gmail.com';
   const cleanTo = (to || '').trim().toLowerCase();
 
   if (!cleanTo) {
     throw new Error('Recipient email is required');
   }
 
-  // 1. Try Brevo HTTP API if BREVO_API_KEY is configured (Fast 7s timeout)
+  let brevoApiError = null;
+
+  // 1. Try Brevo HTTP API if BREVO_API_KEY is configured
   if (process.env.BREVO_API_KEY) {
     try {
       const response = await axios.post(
@@ -44,11 +46,7 @@ async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN A
         data: err.response?.data,
         message: brevoErrMsg,
       });
-
-      // If no alternative SMTP is configured, throw Brevo error directly without trying slow/blocked SMTP
-      if (!process.env.GMAIL_APP_PASSWORD && !process.env.SMTP_HOST) {
-        throw new Error(`Brevo API Error (${err.response?.status || 'Network'}): ${brevoErrMsg}`);
-      }
+      brevoApiError = `Brevo API Error (${err.response?.status || 'Network'}): ${brevoErrMsg}`;
     }
   }
 
@@ -64,9 +62,9 @@ async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN A
           user: gmailUser,
           pass: gmailPass,
         },
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 5000,
+        connectionTimeout: 6000,
+        greetingTimeout: 6000,
+        socketTimeout: 6000,
       });
 
       const info = await transporter.sendMail({
@@ -82,22 +80,22 @@ async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN A
     }
   }
 
-  // 3. Try custom SMTP if explicitly provided (with strict 5s timeouts)
-  if (process.env.SMTP_HOST) {
-    const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || '465');
-    const user = process.env.SMTP_USER || process.env.BREVO_USER;
-    const pass = process.env.SMTP_PASS || process.env.BREVO_PASS;
+  // 3. Try Brevo SMTP / Custom SMTP if BREVO_USER / SMTP_USER and BREVO_PASS / SMTP_PASS are set
+  const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const user = process.env.SMTP_USER || process.env.BREVO_USER;
+  const pass = process.env.SMTP_PASS || process.env.BREVO_PASS;
 
+  if (user && pass) {
     try {
       const transporter = nodemailer.createTransport({
         host,
         port,
         secure: port === 465,
         auth: { user, pass },
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 5000,
+        connectionTimeout: 7000,
+        greetingTimeout: 7000,
+        socketTimeout: 7000,
       });
 
       const info = await transporter.sendMail({
@@ -113,7 +111,11 @@ async function sendEmail({ to, subject, htmlContent, senderName = 'SRM_KITCHEN A
     }
   }
 
-  throw new Error('Email delivery failed: BREVO_API_KEY is invalid/disabled in Brevo dashboard, and no secondary SMTP (Gmail App Password) is configured.');
+  if (brevoApiError) {
+    throw new Error(brevoApiError);
+  }
+
+  throw new Error('Email delivery failed: Neither Brevo API key nor SMTP credentials are valid/configured.');
 }
 
 module.exports = { sendEmail };
